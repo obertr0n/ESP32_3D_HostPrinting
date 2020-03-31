@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+
+<html>
+
+<head>
+    <link rel="stylesheet" type="text/css" href="/www/style.css">
+    <title>ESP32 HostPrint</title>
+</head>
+
+<body onload="Init(); getDirs()">
+    <div id="sdfiles">
+        <form class='form' enctype='multipart/form-data' id='uploadfrm' name='uploadform' method='POST'>
+            <input type='file' name='userfile' id='inpfile' onchange='sub(this)' />
+            <label id='linpfile' for='inpfile'>Choose file to upload...</label>
+            <div id="lwrapper" style="text-align: center;">
+                <input type='submit' class=uploadbtn value='Upload to SD' />
+            </div>
+            <br>
+            <div id='prgtxt'></div>
+            <div id='prgbar'>
+                <div id='iprgbar'> </div>
+            </div>
+        </form>
+        <br>
+        <div id="table">
+            <button onclick="getDirs()" class="refreshbtn">Refresh SD Files</button>
+            <br>
+            <table id="tfiles">
+                <thead id="tfileshead">
+                    <tr>
+                        <th id="thname">FileName</th>
+                        <th id="thsize">Size [MB]</th>
+                        <th id="thprint">Print</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+        </div>
+    </div>
+    <br>
+    <br>
+
+    <script>
+        var jsonFiles;
+        const uploadForm = document.getElementById('uploadfrm');
+        const inputFile = document.getElementById('inpfile');
+        const progTxt = document.getElementById('prgtxt');
+        const progBar = document.getElementById('iprgbar');
+        const lInputFile = document.getElementById('linpfile');
+
+        const tSdFiles = document.getElementById('tfiles');
+        const tbSdFiles = document.getElementById('tbody');
+
+        uploadForm.addEventListener('submit', uploadFile);
+
+        function Init() {
+            websock = new WebSocket('ws://' + window.location.hostname + '/ws');
+            websock.onmessage = function(evt) {
+                processWs(evt)
+            };
+        }
+
+        function sub(obj) {
+            var fileName = obj.value.split('\\');
+            lInputFile.innerHTML = '   ' + fileName[fileName.length - 1];
+        };
+
+        function processWs(ev) {
+            let json = JSON.parse(ev.data);
+        }
+
+        function uploadFile(ev) {
+            ev.preventDefault();
+            progTxt.style.color = '#777';
+            if (inputFile.files.length === 0) {
+                progTxt.innerHTML = 'Choose a file first';
+                progTxt.style.color = 'red';
+                return;
+            }
+            var xhr = new window.XMLHttpRequest();
+            xhr.upload.onprogress = function(ev) {
+                if (ev.lengthComputable) {
+                    var per = ev.loaded / ev.total;
+                    progTxt.innerHTML = 'progress: ' + Math.round(per * 100) + '%';
+                    progBar.style.width = Math.round(per * 100) + '%';
+                }
+            }
+            xhr.onloadend = function() {
+                if (xhr.status == 200) {
+                    progTxt.innerHTML = 'Success'
+                    progTxt.style.color = 'green';
+                    getDirs();
+                } else {
+                    progTxt.innerHTML = 'Upload Failed'
+                    progTxt.style.color = 'red';
+                }
+            };
+            var frmData = new FormData();
+            frmData.append('userfile', inputFile.files[0])
+
+            xhr.open('POST', 'server.php', true);
+            xhr.send(frmData);
+        };
+
+        function getDirs() {
+
+            var text = '{"files":[{"filename":"/gcode/100mm_level_block.gcode","size":"559276"},{"filename":"/gcode/arms2_single_0.36mm_PLA_ENDER3_8m.gcode","size":"273602"},{"filename":"/gcode/fanmount-40x40x20mm-threaded.gcode","size":"914558"},{"filename":"/gcode/HamsterWheel_10cm.gcode","size":"7877858"},{"filename":"/gcode/myProbe.gcode","size":"1262694"},{"filename":"/gcode/one_gear_no_center_0.36mm_PLA_ENDER3_18m.gcode","size":"1073455"}]}';
+            jsonFiles = JSON.parse(text);
+
+            createTable(jsonFiles.files, tbSdFiles);
+
+            tSdFiles.style.display = "block";
+
+            // var xhr = new XMLHttpRequest();
+            // xhr.open("GET", "/dirs", true);
+            // xhr.onreadystatechange = function () {
+            //     if (this.readyState == 4 && this.status == 200) {
+
+            // jsonFiles = JSON.parse(this.responseText);
+
+            // createTable(jsonFiles.files, tbSdFiles);
+            // tSdFiles.style.display = "block";
+            //     }
+            // }
+            // xhr.send();
+        }
+
+        function createTable(array, table) {
+            // remove all the existing table data
+            for (var i = table.rows.length - 1; i >= 0; i--) {
+                table.deleteRow(i);
+            }
+            var tableBody = "";
+            for (var i = 0; i < array.length; i++) {
+                let text = parseInt(array[i].size) / 1048576;
+                text = text.toFixed(2) + " MB";
+
+                tableBody += "<tr id='tr'>";
+                tableBody += "<td id='tdname'>" + array[i].filename + "</td>";
+                tableBody += "<td id='tdsize'>" + text + "</td>";
+                tableBody += "<td id='tdprint' onclick=\"requestPrint('" + array[i].filename + "')\">Print</td>";
+                tableBody += "</tr>";
+            }
+            table.innerHTML += tableBody;
+        }
+
+        function requestPrint(name) {
+            // var parent = this.parent();
+            if (confirm("Start printing:" + name + " ?")) {
+
+                alert(name)
+            }
+        }
+    </script>
+</body>
+
+</html>

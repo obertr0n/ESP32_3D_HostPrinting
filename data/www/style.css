@@ -1,0 +1,160 @@
+body {
+    background: #3498db;
+    font-family: sans-serif;
+    font-size: 14px;
+    color: #777;
+    margin: auto;
+    padding-top: 10px;
+    width: 50%;
+}
+
+#uploadfrm {
+    border: 1px solid #ddd;
+    padding: 5px;
+    border-radius: 10px;
+}
+
+#inpfile {
+    display: none;
+}
+
+#linpfile {
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 18px;
+    background-color: #f1f1f1;
+    text-align: left;
+    cursor: pointer;
+}
+
+#prgbar {
+    background-color: #f1f1f1;
+    border-radius: 2px
+}
+
+#iprgbar {
+    background-color: #34db6c;
+    width: 0%;
+    height: 10px
+}
+
+.uploadbtn {
+    background: #f1f1f1;
+    color: #777;
+    cursor: pointer;
+    font-size: 15px;
+    height: 30px;
+    width: 20%;
+    border-radius: 5px;
+}
+
+.refreshbtn {
+    background: #f1f1f1;
+    color: #777;
+    cursor: pointer;
+    font-size: 15px;
+    height: 24px;
+    width: 17%;
+    border-radius: 5px;
+}
+
+#otaupload {
+    position: relative;
+    width: 350px;
+    background-color: #FFFFFF;
+    border-radius: 5px;
+    padding: 15px;
+}
+
+#sdfiles {
+    background-color: #FFFFFF;
+    border-radius: 5px;
+    padding: 15px;
+    float: left;
+    clear: none;
+}
+
+#table {
+    min-width: 740px;
+    float: right;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+}
+
+table tr {
+    border-bottom: 1px solid #ddd;
+}
+
+table {
+    padding: 2px;
+    border-collapse: collapse;
+    border-radius: 1em;
+    overflow: hidden;
+}
+
+thead {
+    background-color: #5FADE2;
+    color: #ffff;
+    border-radius: 10px;
+    width: 100%;
+}
+
+thead th {
+    text-align: center;
+}
+
+tr {
+    float: left;
+    width: 100%;
+    min-width: 740px;
+    border-bottom: 1px slategrey;
+}
+
+th,
+td {
+    word-wrap: break-word;
+    height: 20px;
+    padding-top: 5px;
+}
+
+#thname {
+    float: left;
+    width: 83%;
+    text-align: center;
+}
+
+#tdname {
+    float: left;
+    width: 83%;
+    text-align: left;
+}
+
+#tdsize,
+#thsize {
+    float: left;
+    width: 10%;
+    text-align: center;
+}
+
+#tdprint,
+#thprint {
+    float: left;
+    width: 6%;
+    text-align: right;
+}
+
+#tdprint {
+    color: blue;
+    cursor: pointer;
+}
+
+
+/* Responsive layout - makes the three columns stack on top of each other instead of next to each other */
+
+@media screen and (max-width:600px) {
+    .column {
+        width: 100%;
+    }
+}
