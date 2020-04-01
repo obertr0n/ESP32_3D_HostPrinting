@@ -17,7 +17,7 @@
             </div>
             <div style="text-align: center;">
                 <br>
-                <input type='submit' class=uploadbtn value='Update' onclick="submitFile()">
+                <input type='submit' class=uploadbtn value='Update'>
             </div>
             <div id='prgtxt'></div>
             <br>
@@ -34,13 +34,21 @@
         const progBar = document.getElementById('iprgbar');
         const lInputFile = document.getElementById('linpfile');
 
+        uploadForm.addEventListener('submit', submitFile);
+
         function sub(obj) {
-            var fileName = obj.value.split('\\\\');
+            var fileName = obj.value.split('\\');
             lInputFile.innerHTML = '   ' + fileName[fileName.length - 1];
         };
 
-        function submitFile(ev, uri) {
+        function submitFile(ev) {
             ev.preventDefault();
+            progTxt.style.color = '#777';
+            if (inputFile.files.length === 0) {
+                progTxt.innerHTML = 'Choose a file first';
+                progTxt.style.color = 'red';
+                return;
+            }
 
             var xhr = new window.XMLHttpRequest();
             var formData = new FormData();
@@ -65,7 +73,7 @@
             var frmData = new FormData();
             frmData.append('userfile', inputFile.files[0])
 
-            xhr.open('POST', 'server.php', true);
+            xhr.open('POST', '/fwupload', true);
             xhr.send(frmData);
 
         };

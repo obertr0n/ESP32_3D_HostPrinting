@@ -99,31 +99,31 @@
             var frmData = new FormData();
             frmData.append('userfile', inputFile.files[0])
 
-            xhr.open('POST', 'server.php', true);
+            xhr.open('POST', '/', true);
             xhr.send(frmData);
         };
 
         function getDirs() {
 
-            var text = '{"files":[{"filename":"/gcode/100mm_level_block.gcode","size":"559276"},{"filename":"/gcode/arms2_single_0.36mm_PLA_ENDER3_8m.gcode","size":"273602"},{"filename":"/gcode/fanmount-40x40x20mm-threaded.gcode","size":"914558"},{"filename":"/gcode/HamsterWheel_10cm.gcode","size":"7877858"},{"filename":"/gcode/myProbe.gcode","size":"1262694"},{"filename":"/gcode/one_gear_no_center_0.36mm_PLA_ENDER3_18m.gcode","size":"1073455"}]}';
-            jsonFiles = JSON.parse(text);
-
-            createTable(jsonFiles.files, tbSdFiles);
-
-            tSdFiles.style.display = "block";
-
-            // var xhr = new XMLHttpRequest();
-            // xhr.open("GET", "/dirs", true);
-            // xhr.onreadystatechange = function () {
-            //     if (this.readyState == 4 && this.status == 200) {
-
-            // jsonFiles = JSON.parse(this.responseText);
+            // var text = '{"files":[{"filename":"/gcode/100mm_level_block.gcode","size":"559276"},{"filename":"/gcode/arms2_single_0.36mm_PLA_ENDER3_8m.gcode","size":"273602"},{"filename":"/gcode/fanmount-40x40x20mm-threaded.gcode","size":"914558"},{"filename":"/gcode/HamsterWheel_10cm.gcode","size":"7877858"},{"filename":"/gcode/myProbe.gcode","size":"1262694"},{"filename":"/gcode/one_gear_no_center_0.36mm_PLA_ENDER3_18m.gcode","size":"1073455"}]}';
+            // jsonFiles = JSON.parse(text);
 
             // createTable(jsonFiles.files, tbSdFiles);
+
             // tSdFiles.style.display = "block";
-            //     }
-            // }
-            // xhr.send();
+
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", "/dirs", true);
+            xhr.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+
+                    jsonFiles = JSON.parse(this.responseText);
+
+                    createTable(jsonFiles.files, tbSdFiles);
+                    tSdFiles.style.display = "block";
+                }
+            }
+            xhr.send();
         }
 
         function createTable(array, table) {

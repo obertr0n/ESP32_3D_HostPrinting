@@ -1,30 +1,21 @@
 
 #include <WiFi.h>
-#include <ESPAsyncWebServer.h>
-#include <Update.h>
 #include <SPIFFS.h>
+#include <ESPAsyncWebServer.h>
 
 #include "HP_Config.h"
-#include "SdHandler.h"
+#include "SD_Handler.h"
+#include "OTA_Handler.h"
 
 const char *ssid = STR_SSID;
 const char *password = STR_PWD;
 
-int LED = 4;            // PINnumber where your LED is
-int websockMillis = 50; // SocketVariables are sent to client every 50 milliseconds
-int sliderVal = 60;     // Default value of the slider
+static AsyncWebServer server(80);
+static AsyncWebSocket ws("/ws");
 
-File uploadFile;
+static SdHandler sdHandler;
 
-AsyncWebServer server(80);
-AsyncWebSocket ws("/ws");
-
-SdHandler sdHandler;
-
-String JSONtxt;
-unsigned long websockCount = 0UL, wait000 = 0UL, wait001 = 0UL;
-int LEDmillis = 9 * (100 - sliderVal) + 100;
-boolean LEDonoff = true;
+static bool b_flagRebootReq = false;
 
 String millis2time()
 {
@@ -61,7 +52,6 @@ void webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEve
     else if (type == WS_EVT_DATA)
     {
 
-
         // String payloadString = (const char *)payload;
 
         // LOG_Println("payload: '" + payloadString + "', channel: " + (String)len);
@@ -84,79 +74,21 @@ void webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEve
     }
 }
 
-void setupOTA(AsyncWebServer *server)
-{
-    server->on("/fwupdate", HTTP_GET, [&](AsyncWebServerRequest *request){
-        LOG_Println("req /update");
-        request->send(SPIFFS, "/www/otaauth.html", "text/html");
-            });
-
-    server->on("/www/style.css", HTTP_GET, [&](AsyncWebServerRequest *request){
-        LOG_Println("req style.css");
-        request->send(SPIFFS, "/www/style.css", "text/css");
-            });
-
-    server->on("/fwupload",
-        HTTP_GET, 
-        [&](AsyncWebServerRequest *request){
-        LOG_Println("req /fwupload");
-        request->send(SPIFFS, "/www/otaupload.html", "text/html");
-            });
-
-    server->on("/fwupload", 
-        HTTP_POST,
-        [&](AsyncWebServerRequest *request) {
-            // the request handler is triggered after the upload has finished...
-            // create the response, add header, and send response
-            LOG_Println("req POST /fwupload");
-            AsyncWebServerResponse *response = request->beginResponse((Update.hasError()) ? 500 : 200, "text/plain", (Update.hasError()) ? "FAIL" : "OK");
-            response->addHeader("Connection", "close");
-            response->addHeader("Access-Control-Allow-Origin", "*");
-
-            request->send(response);
-        }, 
-        [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
-            //Upload handler chunks in data
-            if (!index)
-            {
-                int cmd = (filename.indexOf("spiffs") > -1) ? U_SPIFFS : U_FLASH;
-                if (!Update.begin(UPDATE_SIZE_UNKNOWN, cmd))
-                { 
-                    // Start with max available size
-                    Update.printError(Serial);
-                }
-            }
-
-            // Write chunked data to the free sketch space
-            if (Update.write(data, len) != len)
-            {
-                Update.printError(Serial);
-            }
-
-            if (final)
-            { 
-                // if the final flag is set then this is the last frame of data
-                if (Update.end(true))
-                { 
-                    //true to set the size to the current progress
-                }
-            }
-        });
-}
-
 void setup(void)
 {
-    DBG_OUTPUT_PORT.begin(115200);
-    DBG_OUTPUT_PORT.setDebugOutput(true);
-    LOG_Println("\n");
-
-    while(!sdHandler.begin())
+    LOG_Init();
+    #if 0
+    pinMode(PIN_CAM_FLASH, OUTPUT);
+    pinMode(PIN_LED, OUTPUT);
+    #endif
+    
+    while (!sdHandler.begin())
     {
         LOG_Println("Failed to init SD");
     }
-    if(!SPIFFS.begin())
+    if (!SPIFFS.begin())
     {
-        Serial.println("An Error has occurred while mounting SPIFFS");
+        LOG_Println("An Error has occurred while mounting SPIFFS");
     }
 
     WiFi.mode(WIFI_STA);
@@ -173,17 +105,18 @@ void setup(void)
     LOG_Println("Connected! IP address: ");
     LOG_Println(WiFi.localIP());
 
-    // WiFi.softAP("TestAP", "");
-    // LOG_Println(WiFi.softAPIP());
+    server.on("/www/style.css", HTTP_GET, [&](AsyncWebServerRequest *request) {
+        LOG_Println("req style.css");
+        request->send(SPIFFS, "/www/style.css", "text/css");
+    });
+
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
         request->send(SPIFFS, "/www/index.html", "text/html");
     });
 
-    server.on("/", 
-        HTTP_POST, 
-        [&](AsyncWebServerRequest *request) {
+    server.on("/", HTTP_POST, [&](AsyncWebServerRequest *request) {
             LOG_Println("req POST /");
-            
+
             request->send(SPIFFS, "/www/index.html", "text/html");
         },
         [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
@@ -210,18 +143,19 @@ void setup(void)
                 /* close the file */
                 request->_tempFile.close();
             }
-    });
+        });
 
     server.on("/dirs",
-        HTTP_GET, 
-        [](AsyncWebServerRequest *request) {
-        LOG_Println("req /dirs");
-        request->send(200, "text/plain", sdHandler.listDirJSON("/gcode"));
-    });
-
-    setupOTA(&server);
+              HTTP_GET,
+              [](AsyncWebServerRequest *request) {
+                  LOG_Println("req /dirs");
+                  request->send(200, "text/plain", sdHandler.listDirJSON("/gcode"));
+              });
 
     sdHandler.listDirJSON("/gcode");
+
+    OTA_SetupSevices(server);
+
     ws.onEvent(webSocketEvent);
     server.addHandler(&ws);
 
@@ -230,5 +164,15 @@ void setup(void)
 
 void loop(void)
 {
+#if 0
+    digitalWrite(PIN_CAM_FLASH, HIGH);
+    delay(500);
+    digitalWrite(PIN_CAM_FLASH, LOW);
+    delay(100);
+    digitalWrite(PIN_LED, HIGH);
+    delay(500);
+    digitalWrite(PIN_LED, LOW);
+    delay(100);
+#endif
     //     ws.textAll(JSONtxt);
 }

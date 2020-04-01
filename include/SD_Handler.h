@@ -1,5 +1,5 @@
-#ifndef _SD_HANDLER
-#define _SD_HANDLER
+#ifndef SD_HANDLER_h
+#define SD_HANDLER_h
 
 #include <FS.h>
 
