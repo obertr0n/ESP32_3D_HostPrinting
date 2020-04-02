@@ -6,6 +6,7 @@
 #include "HP_Config.h"
 #include "SD_Handler.h"
 #include "OTA_Handler.h"
+#include "HP_Util.h"
 
 const char *ssid = STR_SSID;
 const char *password = STR_PWD;
@@ -14,30 +15,6 @@ static AsyncWebServer server(80);
 static AsyncWebSocket ws("/ws");
 
 static SdHandler sdHandler;
-
-static bool b_flagRebootReq = false;
-
-String millis2time()
-{
-    String Time = "";
-    unsigned long ss;
-    byte mm, hh;
-    ss = millis() / 1000;
-    hh = ss / 3600;
-    mm = (ss - hh * 3600) / 60;
-    ss = (ss - hh * 3600) - mm * 60;
-    if (hh < 10)
-        Time += "0";
-    Time += (String)hh + ":";
-    if (mm < 10)
-        Time += "0";
-    Time += (String)mm + ":";
-    if (ss < 10)
-        Time += "0";
-    Time += (String)ss;
-
-    return Time;
-}
 
 void webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *payload, size_t len)
 {
@@ -149,21 +126,30 @@ void setup(void)
               HTTP_GET,
               [](AsyncWebServerRequest *request) {
                   LOG_Println("req /dirs");
-                  request->send(200, "text/plain", sdHandler.listDirJSON("/gcode"));
-              });
+                  request->send(200, "text/plain", sdHandler.jsonifyDir("/gcode", ".gcode"));
+              }); 
 
-    sdHandler.listDirJSON("/gcode");
-
+    util_init();
     OTA_SetupSevices(server);
 
     ws.onEvent(webSocketEvent);
     server.addHandler(&ws);
 
     server.begin();
+    /* signal successful init */
+    util_blink_status();
 }
 
 void loop(void)
 {
+    static uint32_t i = 0;
+
+    util_telnetLoop();
+    OTA_Loop();
+
+    // util_telnetSend("This is a test" + i);
+    // delay(1000);
+    i++;
 #if 0
     digitalWrite(PIN_CAM_FLASH, HIGH);
     delay(500);

@@ -11,8 +11,9 @@ bool SdHandler::begin()
     if (SD.begin(13))
     {
         LOG_Println("SD Card initialized.");
-        _initCompleted = true;
+
         _SDRoot = &SD;
+        _state = IDLE;
 
         return true;
     }
@@ -56,11 +57,11 @@ void SdHandler::listDir(const char* dirname, uint8_t levels)
     }
 }
 
-String SdHandler::listDirJSON(String dir)
+String SdHandler::jsonifyDir(String dir, String ext)
 {
     String jsonString;
 
-    if (_initCompleted)
+    if (_state != NO_INIT)
     {
         File root = _SDRoot->open(dir);
         if (!root || !root.isDirectory())
@@ -77,7 +78,7 @@ String SdHandler::listDirJSON(String dir)
             {
                 String fileName = file.name();
 
-                if (fileName.endsWith(".gcode"))
+                if (fileName.endsWith(ext))
                 {
                     jsonString += "{\"filename\":\"" + fileName + "\"," + // JSON requires double quotes
                                   "\"size\":\"" + (String)file.size() + "\"},";
@@ -117,29 +118,6 @@ void SdHandler::writeBytes(String& path, const uint8_t* data, size_t len)
     {
         LOG_Println("Write failed");
         _state = ERROR;
-    }
-    file.close();
-}
-
-void SdHandler::writeMessage(String&  path, const char* message)
-{
-
-}
-
-
-void SdHandler::readFile(String& path)
-{
-    File file = _SDRoot->open(path);
-    if (!file)
-    {
-        LOG_Println("Failed to open file for reading");
-        return;
-    }
-
-    LOG_Println("Read from file: ");
-    while (file.available())
-    {
-        Serial.write(file.read());
     }
     file.close();
 }

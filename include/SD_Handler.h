@@ -5,6 +5,7 @@
 
 enum SdHandlerState
 {
+    NO_INIT,
     IDLE,
     WRITING,
     ERROR,
@@ -15,12 +16,12 @@ class SdHandler
 {
 private:
     FS* _SDRoot;
-    bool _initCompleted;
     SdHandlerState _state;
+
 public:
     bool begin();
-    SdHandlerState getState() { return SUCCESS; };
-    String listDirJSON(String dir);
+    SdHandlerState getState() { return _state; };
+    String jsonifyDir(String dir, String ext);
     bool remove(String path)
     {
         if(_SDRoot->exists(path))
@@ -32,8 +33,7 @@ public:
     };
     void listDir(const char* dirname, uint8_t levels);
     void writeBytes(String& path, const uint8_t* data, size_t len);
-    void writeMessage(String& path, const char* message);
-    void readFile(String& path);
+    
     File openFile(String& path, const char* mode)
     {
         return _SDRoot->open(path, mode);

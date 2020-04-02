@@ -45,7 +45,6 @@ body {
     cursor: pointer;
     font-size: 15px;
     height: 30px;
-    width: 20%;
     border-radius: 5px;
 }
 
@@ -55,7 +54,6 @@ body {
     cursor: pointer;
     font-size: 15px;
     height: 24px;
-    width: 17%;
     border-radius: 5px;
 }
 
@@ -146,7 +144,8 @@ td {
 }
 
 #tdprint {
-    color: blue;
+    text-align: center;
+    color: lightgrey;
     cursor: pointer;
 }
 

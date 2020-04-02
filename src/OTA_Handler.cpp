@@ -4,6 +4,8 @@
 #include "OTA_Handler.h"
 #include "HP_Config.h"
 
+static bool rebootRequired = false;
+
 void OTA_SetupSevices(AsyncWebServer& server)
 {
     server.on("/fwupload", HTTP_GET,
@@ -14,21 +16,7 @@ void OTA_SetupSevices(AsyncWebServer& server)
 
     server.on("/fwupload", HTTP_POST,
         [&](AsyncWebServerRequest *request) {
-            int code = 200;
-            String content = "Upload OK. Reboot the board";
-            AsyncWebServerResponse *response;
-            
-            if(Update.hasError())
-            {
-                code = 500;
-                content = "Upload Failed.";
-            }
-            
-            response = request->beginResponse(code, "text/plain", content);
-            response->addHeader("Connection", "close");
-            response->addHeader("Access-Control-Allow-Origin", "*");
-
-            request->send(response);
+            request->send(SPIFFS, "/www/otaupload.html", "text/html");
         },
         [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
             /* first chunk of data */
@@ -50,7 +38,19 @@ void OTA_SetupSevices(AsyncWebServer& server)
             /* last frame of the data */
             if (final)
             {
-                Update.end(true);
+                
+                if(Update.end(true))
+                {
+                    rebootRequired = true;
+                }
             }
         });
+}
+
+void OTA_Loop()
+{
+    if(rebootRequired)
+    {
+        ESP.restart();
+    }
 }
