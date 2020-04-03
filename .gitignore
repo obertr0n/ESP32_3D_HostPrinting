@@ -6,3 +6,4 @@
 .travis.yml
 .vscode/extensions.json
 .vscode/settings.json
+.gcode/*.*

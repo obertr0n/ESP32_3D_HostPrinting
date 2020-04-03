@@ -6,15 +6,21 @@
 #include "HP_Config.h"
 #include "SD_Handler.h"
 #include "OTA_Handler.h"
+#include "Print_Handler.h"
 #include "HP_Util.h"
 
-const char *ssid = STR_SSID;
-const char *password = STR_PWD;
+const char *ssid = HP_STR_SSID;
+const char *password = HP_STR_PWD;
 
 static AsyncWebServer server(80);
 static AsyncWebSocket ws("/ws");
 
 static SdHandler sdHandler;
+static PrintHandler printHandler(&Serial);
+
+static String printFileName;
+static bool printRequested = false;
+static File printFile;
 
 void webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *payload, size_t len)
 {
@@ -28,36 +34,19 @@ void webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEve
     }
     else if (type == WS_EVT_DATA)
     {
+        char filename [124];
+        memcpy(filename, payload, len);
+        filename[len] = '\0';
+        printFileName = (String) filename;
+        printRequested = true;
 
-        // String payloadString = (const char *)payload;
-
-        // LOG_Println("payload: '" + payloadString + "', channel: " + (String)len);
-
-        // byte separator = payloadString.indexOf('=');
-        // String var = payloadString.substring(0, separator);
-        // String val = payloadString.substring(separator + 1);
-        // if (var == "LEDonoff")
-        // {
-        //     LEDonoff = false;
-        //     if (val == "LED = ON")
-        //         LEDonoff = true;
-        //     // digitalWrite(LED, HIGH);
-        // }
-        // else if (var == "sliderVal")
-        // {
-        //     sliderVal = val.toInt();
-        //     LEDmillis = 9 * (100 - sliderVal) + 100;
-        // }
+        LOG_Println("payload: '" + printFileName + "', len: " + (String)len);
     }
 }
 
 void setup(void)
 {
     LOG_Init();
-    #if 0
-    pinMode(PIN_CAM_FLASH, OUTPUT);
-    pinMode(PIN_LED, OUTPUT);
-    #endif
     
     while (!sdHandler.begin())
     {
@@ -97,13 +86,8 @@ void setup(void)
             request->send(SPIFFS, "/www/index.html", "text/html");
         },
         [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
-            LOG_Println("index ");
-            Serial.print(index);
-            LOG_Println("Length ");
-            Serial.print(len);
-
+  
             String filePath = "/gcode/" + filename;
-
             /* first chunk, index is the byte index in the data, len is the current chunk length sent */
             if (!index)
             {
@@ -128,37 +112,41 @@ void setup(void)
                   LOG_Println("req /dirs");
                   request->send(200, "text/plain", sdHandler.jsonifyDir("/gcode", ".gcode"));
               }); 
-
+    
+    /* init utilities */
     util_init();
-    OTA_SetupSevices(server);
-
+    /* inir OTA services */
+    ota_init(server);
+    /* websocket handler config */
     ws.onEvent(webSocketEvent);
     server.addHandler(&ws);
-
+    /* start our async server */
     server.begin();
+    /* our print handler, maybe move it to the other core */
+    printHandler.begin(115200);
     /* signal successful init */
     util_blink_status();
 }
 
 void loop(void)
 {
-    static uint32_t i = 0;
+    /* telnet support */
+    // util_telnetLoop();
 
-    util_telnetLoop();
-    OTA_Loop();
+    if(printRequested)
+    {            
+        printRequested = false;
+        
+        printFile = sdHandler.openFile(printFileName, "r");
+        printHandler.startPrint(printFile);
+    }
+
+    /* check if a reboot is required */
+    ota_loop();
+
+    /* printing powerhouse :D */
+    printHandler.loop();
 
     // util_telnetSend("This is a test" + i);
-    // delay(1000);
-    i++;
-#if 0
-    digitalWrite(PIN_CAM_FLASH, HIGH);
-    delay(500);
-    digitalWrite(PIN_CAM_FLASH, LOW);
-    delay(100);
-    digitalWrite(PIN_LED, HIGH);
-    delay(500);
-    digitalWrite(PIN_LED, LOW);
-    delay(100);
-#endif
     //     ws.textAll(JSONtxt);
 }

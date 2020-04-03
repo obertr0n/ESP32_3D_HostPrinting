@@ -43,6 +43,8 @@
 
     <script>
         var jsonFiles;
+        var websock;
+
         const uploadForm = document.getElementById('uploadfrm');
         const inputFile = document.getElementById('inpfile');
         const progTxt = document.getElementById('prgtxt');
@@ -152,8 +154,9 @@
         function requestPrint(name) {
             // var parent = this.parent();
             if (confirm("Start printing:" + name + " ?")) {
-
-                alert(name)
+                if (websock.readyState == WebSocket.OPEN) {
+                    websock.send(name);
+                }
             }
         }
     </script>

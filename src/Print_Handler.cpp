@@ -1,48 +1,146 @@
 #include "Print_Handler.h"
+#include "HP_Config.h"
 
-void PrintHandler::begin(File& file, HardwareSerial& port, uint32_t baud)
+void PrintHandler::begin(uint32_t baud)
 {
-    _file = file;
-    _fileSize = _file.size();
-    _serial = port;
+    _serial->begin(baud);
+}
 
-    _serial.begin(baud);
+void PrintHandler::preBuffer()
+{
+    String line;
+    uint32_t maxSlots = _commands.maxSize();
+
+    while ((_commands.freeSlots() > HP_CMD_SLOTS) && (_commands.freeSlots() > maxSlots / 2))
+    {
+        if (_file.available() > 0)
+        {
+            line = _file.readStringUntil(EOL_CHAR);
+            addCommand(line);
+        }
+    }
+}
+
+String PrintHandler::parseLine(String& line)
+{
+    /* try and remove the whitespaces */
+    line.trim();
+    /* supress the lines that start with a comment */
+    if(line[0] != COMMENT_CHAR)
+    {
+        /* line starts with one of the accepted gcode commands */
+        switch (line[0])
+        {
+            case M_COMMAND: 
+            case G_COMMAND:
+            case T_COMMAND:
+            {
+                int idx = line.indexOf(COMMENT_CHAR);
+                if(idx < 0)
+                {
+                    return line;
+                }
+                /* we must have more than 2 chars before a comment char */
+                else if(idx > 2)
+                {
+                    line = line.substring(0, idx);
+                    if(line.length() > 2)
+                    {
+                        return line;
+                    }
+                    
+                }
+                break;
+            }
+            default:
+            break;
+        }
+    }
+    return "";
+}
+
+inline void PrintHandler::addCommand(String& command)
+{
+    String pLine;
+    pLine = parseLine(command);
+    
+    if (pLine != "")
+    {
+        _commands.push(pLine);
+    }
+}
+
+void PrintHandler::processSerialRx()
+{
+
+}
+
+void PrintHandler::processSerialTx()
+{
+    String printerCommand;
+
+    // if(_ackRcv)
+    // {
+        if(_commands.pop(printerCommand))
+        {
+            _serial->println(printerCommand);
+        }
+    // }
 }
 
 void PrintHandler::parseFile()
 {
     String line;
     size_t bytesAvail = 0;
-    if(PS_PRINTING == _state)
+
+    bytesAvail = _file.available();
+    if (bytesAvail > 0)
     {
-        bytesAvail = _file.available();
-        if((bytesAvail > 0) && (_commands.freeSlots() > CMD_SLOTS))
+        if (_commands.freeSlots() > HP_CMD_SLOTS)
         {
             line = _file.readStringUntil(EOL_CHAR);
-            // int idx = line.indexOf(COMMENT_CHAR);
-            // if(idx > 0)
-            // {
-            //     line = line.substring(0, idx);
-            // }
-            // else if(line.length() > 2)
-            // {
-            //     _commands.push(line);
-            // }
-            // /* line must start with a G or an M command*/
-            // if(line[0] == 'M' || line[0] == 'G')
-            // {
-                
-            // }
-            
-            uint8_t prc = _fileSize * 100 / (_fileSize - bytesAvail);
-            writeProgress(prc);
+            addCommand(line);
 
-            _commands.push(line);
+            size_t remaining = _fileSize - bytesAvail;
+            if (remaining > 0)
+            {
+                _estCompPrc = _fileSize * 100 / (_fileSize - bytesAvail);
+            }
         }
     }
+    else
+    {
+        _printStarted = false;
+        _printCompleted = true;
+    }
+    
 }
 
-void PrintHandler::sendToPrinter()
+void PrintHandler::loop()
 {
-    // _serial.write()
+    switch(_state)
+    {
+        case PH_STATE_PRINT_REQ:
+            _printStarted = true;
+            _printCompleted = false;
+            preBuffer();
+            _state = PH_STATE_PRINTING;
+        break;
+
+        case PH_STATE_PRINTING:
+            parseFile();
+            
+            if(millis() >= _prgTout)
+            {
+                writeProgress(_estCompPrc);
+                _prgTout = millis() + TOUT_PROGRESS;
+            }
+        break;
+
+        default:
+        break;
+    }
+    
+    processSerialRx();
+    processSerialTx();
 }

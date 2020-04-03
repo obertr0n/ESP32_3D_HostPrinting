@@ -6,7 +6,7 @@
 
 static bool rebootRequired = false;
 
-void OTA_SetupSevices(AsyncWebServer& server)
+void ota_init(AsyncWebServer& server)
 {
     server.on("/fwupload", HTTP_GET,
                [&](AsyncWebServerRequest *request) {
@@ -37,8 +37,7 @@ void OTA_SetupSevices(AsyncWebServer& server)
             }
             /* last frame of the data */
             if (final)
-            {
-                
+            {                
                 if(Update.end(true))
                 {
                     rebootRequired = true;
@@ -47,10 +46,11 @@ void OTA_SetupSevices(AsyncWebServer& server)
         });
 }
 
-void OTA_Loop()
+void ota_loop()
 {
     if(rebootRequired)
     {
+        delay(2000);
         ESP.restart();
     }
 }

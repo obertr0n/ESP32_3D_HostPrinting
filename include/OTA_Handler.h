@@ -3,7 +3,7 @@
 
 #include "ESPAsyncWebServer.h"
 
-extern void OTA_SetupSevices(AsyncWebServer& server);
-extern void OTA_Loop();
+extern void ota_init(AsyncWebServer& server);
+extern void ota_loop();
 
 #endif

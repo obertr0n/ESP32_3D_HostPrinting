@@ -1,13 +1,15 @@
 #ifndef HP_CONFIG_h
 #define HP_CONFIG_h
 
+#define ON  1
+#define OFF 0
+
 /* start config */
+#define __DEBUG_MODE OFF
 
-#define __DEBUG_MODE ON
 
-
-#define STR_SSID    "NSA.Host.2.4"
-#define STR_PWD     "Alexandru1"
+#define HP_STR_SSID    "NSA.Host.2.4"
+#define HP_STR_PWD     "Alexandru1"
 
 #define PIN_CAM_FLASH   4
 #define PIN_LED         33
@@ -21,5 +23,9 @@
     #define LOG_Println(x)
     #define LOG_Init()
 #endif
+
+
+#define HP_CMD_SLOTS        3u
+#define HP_PRELOAD_CMD_NUM  10
 
 #endif

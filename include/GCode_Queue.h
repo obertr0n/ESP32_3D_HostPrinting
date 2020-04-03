@@ -23,14 +23,16 @@ public:
     bool push(String& cmd);
     bool pop(String& data);
     String peek();
+    uint32_t maxSize() { return MAX_QUEUE_LENGTH; };
+    uint32_t ocuppiedSlots() { return MAX_QUEUE_LENGTH - freeSlots(); };
     bool isFull() { return _full; };
     bool isEmpty() { return (!_full && (_tail == _head)); };
     uint32_t freeSlots()
     {
-        uint32_t size = MAX_QUEUE_LENGTH;
+        uint32_t size = 0;
         if(!_full)
         {
-            if(_head >= _tail)
+            if(_head > _tail)
             {
                 size = _head - _tail;
             }
@@ -38,8 +40,7 @@ public:
             {
                 size = MAX_QUEUE_LENGTH + _head - _tail;
             }            
-        }
-        
+        }        
         return size;
     };
 };
