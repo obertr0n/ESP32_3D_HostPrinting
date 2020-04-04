@@ -9,41 +9,58 @@
 </head>
 
 <body onload="Init(); getDirs()">
-    <div id="sdfiles">
-        <form class='form' enctype='multipart/form-data' id='uploadfrm' name='uploadform' method='POST'>
-            <input type='file' name='userfile' id='inpfile' onchange='sub(this)' />
-            <label id='linpfile' for='inpfile'>Choose file to upload...</label>
-            <div id="lwrapper" style="text-align: center;">
-                <input type='submit' class=uploadbtn value='Upload to SD' />
-            </div>
+    <div id="container">
+        <div id="sdfiles">
+            <form class='form' enctype='multipart/form-data' id='uploadfrm' name='uploadform' method='POST'>
+                <input type='file' name='userfile' id='inpfile' onchange='sub(this)' />
+                <label id='linpfile' for='inpfile'>Choose file to upload...</label>
+                <div id="lwrapper" style="text-align: center;">
+                    <input type='submit' class=uploadbtn value='Upload to SD' />
+                </div>
+                <br>
+                <div id='prgtxt'></div>
+                <div id='prgbar'>
+                    <div id='iprgbar'> </div>
+                </div>
+            </form>
             <br>
-            <div id='prgtxt'></div>
-            <div id='prgbar'>
-                <div id='iprgbar'> </div>
+            <div id="table">
+                <button onclick="getDirs()" class="refreshbtn">Refresh SD Files</button>
+                <br>
+                <table id="tfiles">
+                    <thead id="tfileshead">
+                        <tr>
+                            <th id="thname">FileName</th>
+                            <th id="thsize">Size [MB]</th>
+                            <th id="thprint">Print</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody"></tbody>
+                </table>
             </div>
-        </form>
-        <br>
-        <div id="table">
-            <button onclick="getDirs()" class="refreshbtn">Refresh SD Files</button>
-            <br>
-            <table id="tfiles">
-                <thead id="tfileshead">
-                    <tr>
-                        <th id="thname">FileName</th>
-                        <th id="thsize">Size [MB]</th>
-                        <th id="thprint">Print</th>
-                    </tr>
-                </thead>
-                <tbody id="tbody"></tbody>
-            </table>
+        </div>
+        <h1 id='heText' style="display: none; color: red;text-align: center;">Print Request was sent, please monitor your 3D printer</h1>
+        <br><br>
+        <div id='commandArea'>
+            <textarea readonly id="commandsText">             
+        </textarea>
+            <br><br>
+            <form id='commandForm'>
+                <label for="icommand">Command</label>
+                <input type="text" id="icommand" name="icommand">
+                <input type="submit" value="Send">
+            </form>
         </div>
     </div>
-    <br>
-    <br>
 
     <script>
         var jsonFiles;
         var websock;
+        const textArea = document.getElementById('commandsText');
+        const cmdForm = document.getElementById('commandForm');
+        const cmdText = document.getElementById('icommand');
+
+        cmdForm.addEventListener('submit', sendCommand);
 
         const uploadForm = document.getElementById('uploadfrm');
         const inputFile = document.getElementById('inpfile');
@@ -53,10 +70,12 @@
 
         const tSdFiles = document.getElementById('tfiles');
         const tbSdFiles = document.getElementById('tbody');
+        const sdFileDiv = document.getElementById('sdfiles');
 
         uploadForm.addEventListener('submit', uploadFile);
 
         function Init() {
+            textArea.value = "";
             websock = new WebSocket('ws://' + window.location.hostname + '/ws');
             websock.onmessage = function(evt) {
                 processWs(evt)
@@ -69,7 +88,8 @@
         };
 
         function processWs(ev) {
-            let json = JSON.parse(ev.data);
+            textArea.value += ev.data;
+            textArea.value += '\n';
         }
 
         function uploadFile(ev) {
@@ -84,7 +104,7 @@
             xhr.upload.onprogress = function(ev) {
                 if (ev.lengthComputable) {
                     var per = ev.loaded / ev.total;
-                    progTxt.innerHTML = 'progress: ' + Math.round(per * 100) + '%';
+                    progTxt.innerHTML = 'Progress: ' + Math.round(per * 100) + '%';
                     progBar.style.width = Math.round(per * 100) + '%';
                 }
             }
@@ -152,12 +172,37 @@
         }
 
         function requestPrint(name) {
-            // var parent = this.parent();
             if (confirm("Start printing:" + name + " ?")) {
-                if (websock.readyState == WebSocket.OPEN) {
-                    websock.send(name);
+                var xhr = new XMLHttpRequest();
+                xhr.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+
+                        h = document.getElementById('heText');
+                        h.style.display = 'block';
+                        sdFileDiv.style.display = 'none';
+                    }
+                }
+                xhr.open("GET", "/request?filename=" + name, true);
+                xhr.send();
+            }
+        }
+
+        function sendCommand(ev) {
+            ev.preventDefault();
+            printerCmd = cmdText.value;
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status != 200) {
+                    textArea.value += "Request Failed";
+                    textArea.value += '\n';
+                } else if (this.readyState == 4 && this.status == 200) {
+                    textArea.value += printerCmd;
+                    textArea.value += '\n';
                 }
             }
+            cmdText.value = "";
+            xhr.open("GET", "/request?gcodecmd=" + printerCmd, true);
+            xhr.send();
         }
     </script>
 </body>

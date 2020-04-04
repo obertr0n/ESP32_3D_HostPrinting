@@ -65,7 +65,8 @@ body {
     padding: 15px;
 }
 
-#sdfiles {
+#container,
+#commandArea {
     background-color: #FFFFFF;
     border-radius: 5px;
     padding: 15px;
@@ -140,19 +141,27 @@ td {
 #thprint {
     float: left;
     width: 6%;
-    text-align: right;
 }
 
 #tdprint {
-    text-align: center;
     color: lightgrey;
     cursor: pointer;
+    text-align: center;
+}
+
+#commandsText {
+    min-width: 740px;
+    min-height: 160px;
+}
+
+#icommand {
+    width: 50%;
 }
 
 
 /* Responsive layout - makes the three columns stack on top of each other instead of next to each other */
 
-@media screen and (max-width:600px) {
+@media screen and (max-width:800px) {
     .column {
         width: 100%;
     }

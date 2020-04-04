@@ -1,9 +1,10 @@
 #include "Print_Handler.h"
 #include "HP_Config.h"
 
-void PrintHandler::begin(uint32_t baud)
+void PrintHandler::begin(uint32_t baud, AsyncWebSocket* ws)
 {
     _serial->begin(baud);
+    _aWs = ws;
 }
 
 void PrintHandler::preBuffer()
@@ -70,7 +71,49 @@ inline void PrintHandler::addCommand(String& command)
     }
 }
 
+bool PrintHandler::send(String& command)
+{
+    if(!isPrinting())
+    {
+        _serial->println(command);
+        return true;
+    }
+    
+    return false;
+}
+
 void PrintHandler::processSerialRx()
+{
+    String rcv;
+    bool found_O = false;
+    while(_serial->available() > 0)
+    {
+        int data = _serial->read();
+        /* try to catch faster an "OK" from printer */
+        if((data == 'o') || (data == 'O'))
+        {
+            found_O = true;
+        }
+        if(((data == 'k') || (data == 'K')) && (found_O == true))
+        {
+            _ackRcv = true;
+        }
+        rcv += (char)data;
+    }
+    if(rcv.length() > 0)
+    {
+        if(_aWs->availableForWriteAll())
+        {
+            _aWs->textAll(rcv);
+        }
+        else
+        {
+            _printerMsg.push(rcv);
+        }
+    }
+}
+
+void PrintHandler::decodePrinterMsg()
 {
 
 }
@@ -79,13 +122,15 @@ void PrintHandler::processSerialTx()
 {
     String printerCommand;
 
-    // if(_ackRcv)
-    // {
+    if(_ackRcv)
+    {
         if(_commands.pop(printerCommand))
         {
             _serial->println(printerCommand);
+            /* reset it only when the transmission is done? */
+            _ackRcv = false;
         }
-    // }
+    }
 }
 
 void PrintHandler::parseFile()
@@ -100,12 +145,10 @@ void PrintHandler::parseFile()
         {
             line = _file.readStringUntil(EOL_CHAR);
             addCommand(line);
+            
+            _estCompPrc = 100 - (bytesAvail * 100 / _fileSize);
 
-            size_t remaining = _fileSize - bytesAvail;
-            if (remaining > 0)
-            {
-                _estCompPrc = _fileSize * 100 / (_fileSize - bytesAvail);
-            }
+            // _serial->printf("Total: %d avail: %d percent %d", _fileSize, bytesAvail, _estCompPrc);
         }
     }
     else
@@ -124,6 +167,7 @@ void PrintHandler::loop()
             _printStarted = true;
             _printCompleted = false;
             preBuffer();
+            _ackRcv = true;
             _state = PH_STATE_PRINTING;
         break;
 
@@ -140,7 +184,7 @@ void PrintHandler::loop()
         default:
         break;
     }
-    
+
     processSerialRx();
     processSerialTx();
 }

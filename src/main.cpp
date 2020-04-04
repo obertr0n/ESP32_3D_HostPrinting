@@ -87,6 +87,12 @@ void setup(void)
         },
         [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
   
+        if (printHandler.isPrinting())
+        {
+            request->send(403, "text/plain", "Job not acccepted");
+        }
+        else
+        {
             String filePath = "/gcode/" + filename;
             /* first chunk, index is the byte index in the data, len is the current chunk length sent */
             if (!index)
@@ -104,15 +110,72 @@ void setup(void)
                 /* close the file */
                 request->_tempFile.close();
             }
-        });
+        }
+    });
 
-    server.on("/dirs",
-              HTTP_GET,
-              [](AsyncWebServerRequest *request) {
-                  LOG_Println("req /dirs");
-                  request->send(200, "text/plain", sdHandler.jsonifyDir("/gcode", ".gcode"));
-              }); 
+    server.on("/request", HTTP_ANY, [](AsyncWebServerRequest *request) {
+        LOG_Println("req /reqPrint");
+        int code = 403;
+        String text;
+        if (request->hasArg("filename"))
+        {
+            printFileName = request->arg("filename");
+
+            if (sdHandler.exists(printFileName))
+            {
+                if (!printHandler.isPrinting())
+                {
+                    printFile = sdHandler.openFile(printFileName, "r");
+                    printHandler.startPrint(printFile);
+                    code = 200;
+                    text = "OK";
+                }
+                else
+                {
+                    code = 403;
+                    text = "Job not acccepted";
+                }
+            }
+            else
+            {
+                code = 403;
+                text = "File not found!";
+            }
+        }
+        else if (request->hasArg("gcodecmd"))
+        {
+            text = request->arg("gcodecmd");
+            if (printHandler.send(text))
+            {
+                code = 200;
+                text = "OK";
+            }
+            else
+            {
+                code = 403;
+                text = "Job not acccepted";
+            }
+        }
+        else
+        {
+            code = 403;
+            text = "Job not acccepted";
+        }
+        request->send(code, "text/plain", text);
+    });
     
+    server.on("/dirs", HTTP_GET, [](AsyncWebServerRequest *request) {
+        LOG_Println("req /dirs");
+        if (printHandler.isPrinting())
+        {
+            request->send(403, "text/plain", "Job not acccepted");
+        }
+        else
+        {
+            request->send(200, "text/plain", sdHandler.jsonifyDir("/gcode", ".gcode"));
+        }
+    });
+
     /* init utilities */
     util_init();
     /* inir OTA services */
@@ -123,7 +186,9 @@ void setup(void)
     /* start our async server */
     server.begin();
     /* our print handler, maybe move it to the other core */
-    printHandler.begin(115200);
+    printHandler.begin(250000, &ws);
+    
+    Serial.setDebugOutput(true);
     /* signal successful init */
     util_blink_status();
 }
@@ -133,13 +198,12 @@ void loop(void)
     /* telnet support */
     // util_telnetLoop();
 
-    if(printRequested)
-    {            
-        printRequested = false;
-        
-        printFile = sdHandler.openFile(printFileName, "r");
-        printHandler.startPrint(printFile);
-    }
+    // if(printRequested)
+    // {            
+    //     printRequested = false;
+    //     printFile = sdHandler.openFile(printFileName, "r");
+    //     printHandler.startPrint(printFile);
+    // }
 
     /* check if a reboot is required */
     ota_loop();
@@ -148,5 +212,5 @@ void loop(void)
     printHandler.loop();
 
     // util_telnetSend("This is a test" + i);
-    //     ws.textAll(JSONtxt);
+    // ws.textAll(JSONtxt);
 }

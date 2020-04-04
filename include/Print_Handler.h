@@ -3,6 +3,7 @@
 
 #include <FS.h>
 #include <WString.h>
+#include <AsyncWebSocket.h>
 
 #include "GCode_Queue.h"
 
@@ -21,7 +22,9 @@ private:
     File _file;
     PrintState _state;
     MsgQueue _commands;
+    MsgQueue _printerMsg;
     HardwareSerial* _serial;
+    AsyncWebSocket* _aWs;
 
     size_t _fileSize;
     // size_t _prcSize;
@@ -33,8 +36,8 @@ private:
     bool _ackRcv;
 
     static const uint8_t COMMENT_CHAR = ';'; 
-    /* transmit every 10s the progress  */
-    static const uint32_t TOUT_PROGRESS = 10000;
+    /* transmit every 5s the progress  */
+    static const uint32_t TOUT_PROGRESS = 5 * 1000;
     static const char M_COMMAND = 'M';
     static const char G_COMMAND = 'G';
     static const char T_COMMAND = 'T';
@@ -50,6 +53,7 @@ private:
     void addCommand(String& command);
     void processSerialRx();
     void processSerialTx();
+    void decodePrinterMsg();
 public:
     PrintHandler(HardwareSerial* port)
     {
@@ -62,15 +66,17 @@ public:
         _printStarted = false;
         _ackRcv = false;
     };
-    uint8_t getState() { return _state; };
-    void startPrint(File& file) 
-    { 
+    PrintState getState() { return _state; };
+    bool isPrinting() { return (_state == PH_STATE_PRINT_REQ || _state == PH_STATE_PRINTING); }
+    void startPrint(File &file)
+    {
         _file = file;
         _fileSize = _file.size();
         _state = PH_STATE_PRINT_REQ;
     };
-    void begin(uint32_t baud);
+    void begin(uint32_t baud, AsyncWebSocket* ws);
     void loop();
+    bool send(String& command);
 };
 
 

@@ -33,7 +33,10 @@ public:
     };
     void listDir(const char* dirname, uint8_t levels);
     void writeBytes(String& path, const uint8_t* data, size_t len);
-    
+    bool exists(String& path)
+    {
+        return _SDRoot->exists(path);
+    }
     File openFile(String& path, const char* mode)
     {
         return _SDRoot->open(path, mode);

@@ -57,13 +57,13 @@
             xhr.upload.onprogress = function(ev) {
                 if (ev.lengthComputable) {
                     var per = ev.loaded / ev.total;
-                    progTxt.innerHTML = 'progress: ' + Math.round(per * 100) + '%';
+                    progTxt.innerHTML = 'Progress: ' + Math.round(per * 100) + '%';
                     progBar.style.width = Math.round(per * 100) + '%';
                 }
             }
             xhr.onloadend = function() {
                 if (xhr.status == 200) {
-                    progTxt.innerHTML = 'Upload OK. Reboot to see new content!'
+                    progTxt.innerHTML = 'Upload OK. Refresh to see new content!'
                     progTxt.style.color = 'green';
                 } else {
                     progTxt.innerHTML = 'Upload Failed'
