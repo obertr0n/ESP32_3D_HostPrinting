@@ -34,6 +34,20 @@ public:
     FSStorageType getStorageType() { return _storageType; }
     uint8_t maxPathLen() { return _pathMaxLen; }
     String jsonifyDir(String dir, String ext);
+    String jsonifyDir(String ext)
+    {
+        String dir;
+        if(_storageType == FS_SPIFFS)
+        {
+            dir = "/";
+        }
+        else
+        {
+            dir = "/gcode";
+        }
+
+        return jsonifyDir(dir, ext);
+    };
     bool remove(String path)
     {
         if (_FSRoot->exists(path))
@@ -49,9 +63,18 @@ public:
     {
         return _FSRoot->exists(path);
     }
+
     File openFile(String &path, const char *mode)
     {
-        return _FSRoot->open(path, mode);
+        String filePath = path;
+
+        if ((_storageType == FS_SPIFFS) && (path.length() > _pathMaxLen))
+        {
+            filePath = "/upld.gcode";
+        }
+        remove(filePath);
+
+        return _FSRoot->open(filePath, mode);
     };
 };
 

@@ -82,11 +82,11 @@ void PrintHandler::processSerialRx()
 {
     String rcv;
     String textLine;
-    bool found_O = false;  
+    // bool found_O = false;  
         while(_serial->available())
         {
             char c = (char)_serial->read();
-            rcv += (char *) c;
+            rcv += c;
 
             if(rcv.indexOf("ok") != -1)
             {

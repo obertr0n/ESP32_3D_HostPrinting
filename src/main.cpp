@@ -134,18 +134,12 @@ void setup(void)
         }
         else
         { 
-            String filePath = "/gcode/" + filename;
-
-            if((fsHandler.getStorageType() == FS_SPIFFS) && 
-                (filePath.length() > fsHandler.maxPathLen()))
-            {
-                filePath = "/upld.gcode";
-            }
-            LOG_Println(filePath);
             /* first chunk, index is the byte index in the data, len is the current chunk length sent */
             if (!index)
             {
-                fsHandler.remove(filePath);
+                String filePath = "/gcode/" + filename;
+
+                LOG_Println(filePath);
                 request->_tempFile = fsHandler.openFile(filePath, FILE_WRITE);
             }
 
@@ -218,16 +212,7 @@ void setup(void)
         }
         else
         {
-            String dir;
-            if(fsHandler.getStorageType() == FS_SPIFFS)
-            {
-                dir = "/";
-            }
-            else
-            {
-                dir = "/gcode";
-            }
-            request->send(200, "text/plain", fsHandler.jsonifyDir(dir, ".gcode"));
+            request->send(200, "text/plain", fsHandler.jsonifyDir(".gcode"));
         }
     });
 
@@ -292,7 +277,7 @@ void setup(void)
     server.begin();
     
     /* setup PrintHandler task */
-    setup_ph_task();
+    // setup_ph_task();
 
     /* signal successful init */
     util_blink_status();
@@ -305,8 +290,11 @@ void loop(void)
 
     /* check if a reboot is required */
     ota_loop();
+        
+    printHandler.loopRx();
+    printHandler.loopTx();
 
-    listTasks();
+    // listTasks();
     // util_telnetSend("This is a test" + i);
     // ws.textAll(JSONtxt);
 }
