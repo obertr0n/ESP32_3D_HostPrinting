@@ -1,7 +1,7 @@
 #include "Print_Handler.h"
 #include "HP_Config.h"
 
-void PrintHandler::begin(uint32_t baud, AsyncWebSocket* ws)
+void PrintHandler::begin(uint32_t baud, AsyncWebSocket *ws)
 {
     _serial->begin(baud);
     _aWs = ws;
@@ -22,142 +22,168 @@ void PrintHandler::preBuffer()
     }
 }
 
-String PrintHandler::parseLine(String& line)
+String PrintHandler::parseLine(String &line)
 {
-    /* try and remove the whitespaces */
-    line.trim();
     /* supress the lines that start with a comment */
-    if(line[0] != COMMENT_CHAR)
+    if (line[0] != COMMENT_CHAR)
     {
         /* line starts with one of the accepted gcode commands */
         switch (line[0])
         {
-            case M_COMMAND: 
-            case G_COMMAND:
-            case T_COMMAND:
+        case M_COMMAND:
+        case G_COMMAND:
+        case T_COMMAND:
+        {
+            int idx = line.indexOf(COMMENT_CHAR);
+            if (idx < 0)
             {
-                int idx = line.indexOf(COMMENT_CHAR);
-                if(idx < 0)
-                {
-                    return line;
-                }
-                /* we must have more than 2 chars before a comment char */
-                else if(idx > 2)
-                {
-                    line = line.substring(0, idx);
-                    return line;                    
-                }
+                return line;
             }
-            break;
+            /* we must have more than 2 chars before a comment char */
+            else if (idx > 2)
+            {
+                line = line.substring(0, idx);
+                return line;
+            }
+        }
+        break;
 
-            default:
+        default:
             break;
         }
     }
     return "";
 }
 
-inline void PrintHandler::addCommand(String& command)
+inline void PrintHandler::addCommand(String &command)
 {
     String pLine = parseLine(command);
-    
+
     if (pLine != "")
     {
         _commands.push(pLine);
     }
 }
 
-bool PrintHandler::send(String& command)
+void PrintHandler::detectPrinter()
 {
-    if(!isPrinting())
+}
+
+bool PrintHandler::send(String &command)
+{
+    if (!isPrinting())
     {
-        _serial->println(command);
+        write(command);
         return true;
     }
-    
+
+    return false;
+}
+
+/*  T:110.03 /190.00 B:50.68 /0.00 @:0 B@:0 W:? */
+bool parseTemp(const String &line)
+{
+    int t_pos = line.indexOf(" T:");
+    if(t_pos >= 0)
+    {
+        int tslh_pos = line.indexOf(" /", t_pos);
+    }
+    int b_pos = line.indexOf(" B:");
+    if(b_pos >= 0)
+    {
+        int bslh_pos = line.indexOf(" /", b_pos);
+    }
+
+    return false;
+}
+
+bool parseFwinfo(const String &line)
+{
+    return false;
+}
+
+bool parse503(const String &line)
+{
     return false;
 }
 
 void PrintHandler::processSerialRx()
 {
-    String rcv;
+    String stringBuff;
     String textLine;
-    // bool found_O = false;  
-        while(_serial->available())
-        {
-            char c = (char)_serial->read();
-            rcv += c;
+    // bool found_O = false;
+    if (_serial->available() > 0)
+    {
+        int len = _serial->available();
+        uint8_t cbuff[len + 1];
 
-            if(rcv.indexOf("ok") != -1)
+        _serial->readBytes(cbuff, len);
+        /* to string */
+        cbuff[len + 1] = '\0';
+
+        stringBuff = (char *)cbuff;
+        while (stringBuff.indexOf("\n") > 0)
+        {
+            stringBuff.replace("\r", "");
+            /* get a line */
+            int endIdx = stringBuff.indexOf("\n");
+            String line = stringBuff.substring(0, endIdx);
+            // line.trim();
+
+            if (line == "ok")
             {
                 _ackRcv = true;
+                LOG_Println("Found OK");
+            }
+            else
+            {
+                if (parseTemp(line))
+                {
+                }
+                if (!_printStarted)
+                {
+                    if (parseFwinfo(line))
+                    {
+                    }
+                    else if (parse503(line))
+                    {
+                    }
+                }
+                else
+                {
+                    /* code */
+                }
             }
 
-        // int endIdx = rcv.indexOf('\n');
-        // int startIdx = 0;
-        // while(endIdx != -1)
-        // {
-        //     rcv.replace("\r", "");
-        //     endIdx = rcv.indexOf('\n');
-        //     textLine = rcv.substring(startIdx, endIdx);
-        //     rcv = rcv.substring(endIdx+1, rcv.length());
-        //     startIdx = endIdx;
-
-        //     if(textLine.indexOf("ok") != -1)
-        //     {
-        //         _ackRcv = true;
-        //         break;
-        //     }
-        // }
-
-
-        // char data = (char)_serial->read();
-        // if(data != LF_CHAR)
-        // {
-        //     rcv += data;
-        // }
-        // /* try to catch faster an "OK" from printer */
-        // if((data == 'o') || (data == 'O'))
-        // {
-        //     found_O = true;
-        // }
-        // if(((data == 'k') || (data == 'K')) && (found_O == true))
-        // {
-        //     _ackRcv = true;
-        //     found_O = false;
-        // }
-        if(_aWs->availableForWriteAll())
-        {
-            _aWs->textAll(rcv);
+            if (_aWs->availableForWriteAll())
+            {
+                _aWs->textAll(line);
+            }
+            stringBuff = stringBuff.substring(endIdx + 1, stringBuff.length());
         }
     }
-    // if(rcv.length() > 0)
-    // {
-        // else
-        // {
-        //     _printerMsg.push(rcv);
-        // }
-    // }
 }
 
 void PrintHandler::decodePrinterMsg()
 {
-
 }
 
 void PrintHandler::processSerialTx()
 {
     String printerCommand;
 
-    if(_ackRcv)
+    if (_ackRcv)
     {
-        if(_commands.pop(printerCommand))
+        printerCommand = _commands.pop();
+        if (printerCommand != "")
         {
-            _serial->println(printerCommand);
-            // _serial->flush();
-            _aWs->textAll(printerCommand);
+            write(printerCommand);
             /* reset it only when the transmission is done? */
             _ackRcv = false;
+            if (_aWs->availableForWriteAll())
+            {
+                _aWs->textAll(printerCommand);
+            }
         }
     }
 }
@@ -173,32 +199,34 @@ void PrintHandler::parseFile()
         if (_commands.freeSlots() > HP_CMD_SLOTS)
         {
             line = _file.readStringUntil(LF_CHAR);
-            line.trim();
+            // line.trim();
+            // line.replace("\r", "");
             addCommand(line);
-            
+
             _estCompPrc = 100U - (bytesAvail * 100U / _fileSize);
         }
-    }    
+    }
     else
     {
         _file.close();
         _printStarted = false;
         _printCompleted = true;
     }
-    
 }
 
 void PrintHandler::loopTx()
 {
-    switch(_state)
+    if (_printerConnected)
     {
+        switch (_state)
+        {
         case PH_STATE_PRINT_REQ:
             _printStarted = true;
             _printCompleted = false;
             preBuffer();
             _ackRcv = true;
             _state = PH_STATE_PRINTING;
-        break;
+            break;
 
         case PH_STATE_PRINTING:
             if (!_printCompleted)
@@ -215,15 +243,19 @@ void PrintHandler::loopTx()
             {
                 _state = PH_STATE_IDLE;
             }
-        break;
+            break;
 
         default:
-        break;
+            break;
+        }
+        processSerialTx();
     }
-    processSerialTx();
 }
 
 void PrintHandler::loopRx()
 {
-    processSerialRx();
+    if (_printerConnected)
+    {
+        processSerialRx();
+    }
 }

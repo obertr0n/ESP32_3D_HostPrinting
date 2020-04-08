@@ -30,14 +30,15 @@ private:
     // size_t _prcSize;
     uint8_t _estCompPrc;
     uint32_t _prgTout;
+    bool _printerConnected;
     bool _printCompleted;
     bool _printCanceled;
     bool _printStarted;
     bool _ackRcv;
-
+    const uint32_t BAUD_RATES[9] = { 2400, 9600, 19200, 38400, 57600, 115200, 250000, 500000, 1000000 }; 
     static const uint8_t COMMENT_CHAR = ';'; 
-    /* transmit every 2s the progress  */
-    static const uint32_t TOUT_PROGRESS = 2 * 1000;
+    /* transmit every 5s the progress  */
+    static const uint32_t TOUT_PROGRESS = 5 * 1000;
     static const char M_COMMAND = 'M';
     static const char G_COMMAND = 'G';
     static const char T_COMMAND = 'T';
@@ -46,8 +47,15 @@ private:
 
     void sendNow();
     void preBuffer();
-    void toLcd(String& text) { _commands.push("M117 " + text); };    
-    void writeProgress(uint8_t prc) { _commands.push("M117 Completed " + (String)prc + "%"); };
+    void toLcd(String& text) { _commands.push("M117 " + text); };
+    void write(String& text) 
+    { 
+        if(_serial->availableForWrite())
+        {
+            _serial->println(text);
+        }
+    }
+    void writeProgress(uint8_t prc) { _commands.push("M73 P" + (String)prc); };
     void parseFile();
     void sendToPrinter();
     String parseLine(String& line);
@@ -55,6 +63,7 @@ private:
     void processSerialRx();
     void processSerialTx();
     void decodePrinterMsg();
+    void detectPrinter();
 public:
     PrintHandler(HardwareSerial* port)
     {

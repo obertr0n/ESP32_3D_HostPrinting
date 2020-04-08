@@ -72,7 +72,10 @@ public:
         {
             filePath = "/upld.gcode";
         }
-        remove(filePath);
+        if(mode && *mode == 'w')
+        {
+            remove(filePath);
+        }
 
         return _FSRoot->open(filePath, mode);
     };

@@ -1,13 +1,13 @@
 #include "gCode_Queue.h"
 
-bool MsgQueue::pop(String& data)
+String MsgQueue::pop()
 {
 	uint8_t next = 0;
 
     /* buffer apperas empty */
     if (_head == _tail)
     {
-        return false;
+        return "";
     }
     /* next will be the tail after this pop */
     next = _tail + 1;
@@ -16,16 +16,15 @@ bool MsgQueue::pop(String& data)
         next = 0;
     }
 
-    /* get the data */
-    data = _msgQueue[_tail];
     /* update the tail */
     _tail = next;
     _full = false;
 
-    return true;
+    /* get the data */
+    return _msgQueue[_tail];
 }
 
-bool MsgQueue::push(String& msg)
+bool MsgQueue::push(const String& msg)
 {
     uint32_t next = _head + 1;
     /* we are at top, circle to first element */

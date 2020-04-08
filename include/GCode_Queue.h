@@ -20,8 +20,8 @@ public:
         _head = 0;
         _full = false;
     };
-    bool push(String& cmd);
-    bool pop(String& data);
+    bool push(const String& cmd);
+    String pop();
     String peek();
     uint32_t maxSize() { return MAX_QUEUE_LENGTH; };
     uint32_t ocuppiedSlots() { return MAX_QUEUE_LENGTH - freeSlots(); };
@@ -29,19 +29,19 @@ public:
     bool isEmpty() { return (!_full && (_tail == _head)); };
     uint32_t freeSlots()
     {
-        uint32_t free = 0;
+        uint32_t freePos = 0;
         if(!_full)
         {
             if(_head > _tail)
             {
-                free = _head - _tail;
+                freePos = _head - _tail;
             }
             else
             {
-                free = MAX_QUEUE_LENGTH + _head - _tail;
+                freePos = MAX_QUEUE_LENGTH + _head - _tail;
             }            
         }        
-        return free;
+        return freePos;
     };
 };
 

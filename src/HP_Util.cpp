@@ -35,7 +35,7 @@ void util_init()
     // pinMode(PIN_CAM_FLASH, OUTPUT);
     pinMode(PIN_LED, OUTPUT);
 
-    util_telnetInit();
+    // util_telnetInit();
 }
 
 static void util_telnetInit()

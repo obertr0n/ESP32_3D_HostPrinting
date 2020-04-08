@@ -43,56 +43,57 @@ void webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEve
     }
 }
 
-void printTx_service_task(void *pvParameters)
-{
-    for(;;)
-    {
-        /* printing powerhouse :D */
-        printHandler.loopTx();
-    }
-    vTaskDelete(NULL);
-    ph_Txtask_handle = NULL;
-}
+// void printTx_service_task(void *pvParameters)
+// {
+//     for(;;)
+//     {
+//         /* printing powerhouse :D */
+//         printHandler.loopTx();
+//     }
+//     vTaskDelete(NULL);
+//     ph_Txtask_handle = NULL;
+// }
 
-void printRx_service_task(void *pvParameters)
-{
-    for(;;)
-    {
-        /* printing powerhouse :D */
-        printHandler.loopRx();
-    }
-    vTaskDelete(NULL);
-    ph_Txtask_handle = NULL;
-}
+// void printRx_service_task(void *pvParameters)
+// {
+//     for(;;)
+//     {
+//         /* printing powerhouse :D */
+//         printHandler.loopRx();
+//     }
+//     vTaskDelete(NULL);
+//     ph_Txtask_handle = NULL;
+// }
 
-void setup_ph_task()
-{
-    /* our print handler, maybe move it to the other core */
-    printHandler.begin(250000, &ws);
+// void setup_ph_task()
+// {
+//     /* our print handler, maybe move it to the other core */
+//     printHandler.begin(250000, &ws);
 
-    xTaskCreateUniversal(printTx_service_task, 
-                        "ph_Txtask", 
-                        8192 * 2, 
-                        NULL, 
-                        1, 
-                        &ph_Txtask_handle, 
-                        0);
+//     xTaskCreateUniversal(printTx_service_task, 
+//                         "ph_Txtask", 
+//                         8192 * 2, 
+//                         NULL, 
+//                         1, 
+//                         &ph_Txtask_handle, 
+//                         0);
 
-    xTaskCreateUniversal(printRx_service_task, 
-                        "ph_Rxtask", 
-                        8192 * 2, 
-                        NULL, 
-                        1, 
-                        &ph_Rxtask_handle, 
-                        0);
-}
+//     xTaskCreateUniversal(printRx_service_task, 
+//                         "ph_Rxtask", 
+//                         8192 * 2, 
+//                         NULL, 
+//                         1, 
+//                         &ph_Rxtask_handle, 
+//                         0);
+// }
 
 void setup(void)
 {
     LOG_Init();
+    printHandler.begin(250000, &ws);
     
-    disableCore0WDT();
-    disableCore1WDT();
+    // disableCore0WDT();
+    // disableCore1WDT();
 
     while (!fsHandler.begin())
     {
@@ -166,7 +167,7 @@ void setup(void)
             {
                 if (!printHandler.isPrinting())
                 {
-                    printFile = fsHandler.openFile(printFileName, "r");
+                    printFile = fsHandler.openFile(printFileName, FILE_READ);
                     printHandler.startPrint(printFile);
                     code = 200;
                     text = "OK";
@@ -273,12 +274,13 @@ void setup(void)
     ws.onEvent(webSocketEvent);
     server.addHandler(&ws);
     
+    /* setup PrintHandler task */
+    // setup_ph_task();    
+
     /* start our async server */
     server.begin();
     
-    /* setup PrintHandler task */
-    // setup_ph_task();
-
+    LOG_Println("Init Done");
     /* signal successful init */
     util_blink_status();
 }

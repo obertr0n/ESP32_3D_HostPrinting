@@ -47,7 +47,6 @@ bool FSHandler::begin()
     return ret;
 }
 
-
 void FSHandler::listDir(const char *dirname, uint8_t levels)
 {
     File root = _FSRoot->open(dirname);

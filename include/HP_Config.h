@@ -17,7 +17,7 @@
 #if __DEBUG_MODE == ON
     #define DBG_OUTPUT_PORT Serial
     #define LOG_Println(x)  DBG_OUTPUT_PORT.println((x))
-    #define LOG_Init()      DBG_OUTPUT_PORT.begin(115200); \
+    #define LOG_Init()      DBG_OUTPUT_PORT.begin(115200);\
                             DBG_OUTPUT_PORT.setDebugOutput(true)
 #else
     #define LOG_Println(x)
