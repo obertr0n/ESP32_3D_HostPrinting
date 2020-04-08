@@ -14,6 +14,7 @@
             <form class='form' enctype='multipart/form-data' id='uploadfrm' name='uploadform' method='POST'>
                 <input type='file' name='userfile' id='inpfile' onchange='sub(this)' />
                 <label id='linpfile' for='inpfile'>Choose file to upload...</label>
+                <br><br>
                 <div id="lwrapper" style="text-align: center;">
                     <input type='submit' class=uploadbtn value='Upload to SD' />
                 </div>
@@ -39,10 +40,11 @@
                 </table>
             </div>
         </div>
-        <h1 id='heText' style="display: none; color: red;text-align: center;">Print Request was sent, please monitor your 3D printer</h1>
+        <h1 id='heText' style="display: none; color: red;text-align: center;">Print Request was sent, please monitor
+            your 3D printer</h1>
         <br><br>
         <div id='commandArea'>
-            <textarea readonly id="commandsText">             
+            <textarea readonly id="commandsText">
         </textarea>
             <br><br>
             <form id='commandForm'>
@@ -50,6 +52,7 @@
                 <input type="text" id="icommand" name="icommand">
                 <input type="submit" value="Send">
             </form>
+            <button onclick="reqStats()">ReqTasks</button>
         </div>
     </div>
 
@@ -77,7 +80,7 @@
         function Init() {
             textArea.value = "";
             websock = new WebSocket('ws://' + window.location.hostname + '/ws');
-            websock.onmessage = function(evt) {
+            websock.onmessage = function (evt) {
                 processWs(evt)
             };
         }
@@ -90,6 +93,7 @@
         function processWs(ev) {
             textArea.value += ev.data;
             textArea.value += '\n';
+            textArea.scrollTop = textArea.scrollHeight
         }
 
         function uploadFile(ev) {
@@ -101,14 +105,14 @@
                 return;
             }
             var xhr = new window.XMLHttpRequest();
-            xhr.upload.onprogress = function(ev) {
+            xhr.upload.onprogress = function (ev) {
                 if (ev.lengthComputable) {
                     var per = ev.loaded / ev.total;
                     progTxt.innerHTML = 'Progress: ' + Math.round(per * 100) + '%';
                     progBar.style.width = Math.round(per * 100) + '%';
                 }
             }
-            xhr.onloadend = function() {
+            xhr.onloadend = function () {
                 if (xhr.status == 200) {
                     progTxt.innerHTML = 'Success'
                     progTxt.style.color = 'green';
@@ -136,7 +140,7 @@
 
             var xhr = new XMLHttpRequest();
             xhr.open("GET", "/dirs", true);
-            xhr.onreadystatechange = function() {
+            xhr.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
 
                     jsonFiles = JSON.parse(this.responseText);
@@ -174,7 +178,7 @@
         function requestPrint(name) {
             if (confirm("Start printing:" + name + " ?")) {
                 var xhr = new XMLHttpRequest();
-                xhr.onreadystatechange = function() {
+                xhr.onreadystatechange = function () {
                     if (this.readyState == 4 && this.status == 200) {
 
                         h = document.getElementById('heText');
@@ -187,11 +191,23 @@
             }
         }
 
+        function reqStats() {
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    textArea.value += "ReqStats OK";
+                    textArea.value += '\n';
+                }
+            }
+            xhr.open("GET", "/stats", true);
+            xhr.send();
+        }
+
         function sendCommand(ev) {
             ev.preventDefault();
             printerCmd = cmdText.value;
             var xhr = new XMLHttpRequest();
-            xhr.onreadystatechange = function() {
+            xhr.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status != 200) {
                     textArea.value += "Request Failed";
                     textArea.value += '\n';

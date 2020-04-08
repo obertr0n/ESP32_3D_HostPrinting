@@ -36,12 +36,13 @@ private:
     bool _ackRcv;
 
     static const uint8_t COMMENT_CHAR = ';'; 
-    /* transmit every 5s the progress  */
-    static const uint32_t TOUT_PROGRESS = 5 * 1000;
+    /* transmit every 2s the progress  */
+    static const uint32_t TOUT_PROGRESS = 2 * 1000;
     static const char M_COMMAND = 'M';
     static const char G_COMMAND = 'G';
     static const char T_COMMAND = 'T';
-    static const char EOL_CHAR = '\n';
+    static const char LF_CHAR = '\n';
+    static const char CR_CHAR = '\r';
 
     void sendNow();
     void preBuffer();
@@ -75,7 +76,8 @@ public:
         _state = PH_STATE_PRINT_REQ;
     };
     void begin(uint32_t baud, AsyncWebSocket* ws);
-    void loop();
+    void loopTx();
+    void loopRx();
     bool send(String& command);
 };
 

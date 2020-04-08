@@ -1,28 +1,56 @@
 #include <SD.h>
 #include <SPI.h>
+#include "SPIFFS.h"
 
-#include "SD_Handler.h"
+#include "FS_Handler.h"
 #include "HP_Config.h"
 
-bool SdHandler::begin()
+bool FSHandler::begin()
 {
+    /* init SPI for SD communication */
     SPI.begin(14, 2, 15, 13);
-
+    /* at the moment we don't know the FS type */
+    _storageType = FS_NONE;
+    _FSRoot = NULL;
+    _state = ERROR;
+    bool ret = false;
+    if (SPIFFS.begin())
+    {
+        LOG_Println("SPIFFS mounted.");
+        _storageType = FS_SPIFFS;
+        _FSRoot = &SPIFFS;
+        _state = IDLE;
+        _pathMaxLen = 11;
+        ret = true;
+    }
+    /* try and mount SD */
     if (SD.begin(13))
     {
         LOG_Println("SD Card initialized.");
-
-        _SDRoot = &SD;
+        if (_storageType == FS_SPIFFS)
+        {
+            /* we have both available */
+            _storageType = FS_SD_SPIFFS;
+        }
+        else
+        {
+            /* only SD available */
+            _storageType = FS_SD;
+        }
+        _pathMaxLen = 255;
+        _FSRoot = &SD;
         _state = IDLE;
 
-        return true;
+        ret= true;
     }
-    return false;
+
+    return ret;
 }
 
-void SdHandler::listDir(const char* dirname, uint8_t levels)
+
+void FSHandler::listDir(const char *dirname, uint8_t levels)
 {
-    File root = _SDRoot->open(dirname);
+    File root = _FSRoot->open(dirname);
     if (!root)
     {
         LOG_Println("Failed to open directory");
@@ -57,13 +85,13 @@ void SdHandler::listDir(const char* dirname, uint8_t levels)
     }
 }
 
-String SdHandler::jsonifyDir(String dir, String ext)
+String FSHandler::jsonifyDir(String dir, String ext)
 {
     String jsonString;
 
     if (_state != NO_INIT)
     {
-        File root = _SDRoot->open(dir);
+        File root = _FSRoot->open(dir);
         if (!root || !root.isDirectory())
         {
             return "";
@@ -71,7 +99,7 @@ String SdHandler::jsonifyDir(String dir, String ext)
 
         File file = root.openNextFile();
         jsonString = "{\"files\":[";
-        
+
         while (file)
         {
             if (!file.isDirectory())
@@ -86,23 +114,23 @@ String SdHandler::jsonifyDir(String dir, String ext)
             }
             file = root.openNextFile();
         }
-        jsonString[jsonString.length()-1] = ']';
+        jsonString[jsonString.length() - 1] = ']';
         jsonString += "}";
         // jsonString += "}";
 
         LOG_Println(jsonString);
-        
+
         return jsonString;
     }
     else
         return "";
 }
 
-void SdHandler::writeBytes(String& path, const uint8_t* data, size_t len)
+void FSHandler::writeBytes(String &path, const uint8_t *data, size_t len)
 {
     _state = IDLE;
 
-    File file = _SDRoot->open(path, FILE_WRITE);
+    File file = _FSRoot->open(path, FILE_WRITE);
     if (!file)
     {
         LOG_Println("Failed to open file for writing");

@@ -4,7 +4,7 @@
 #include <ESPAsyncWebServer.h>
 
 #include "HP_Config.h"
-#include "SD_Handler.h"
+#include "FS_Handler.h"
 #include "OTA_Handler.h"
 #include "Print_Handler.h"
 #include "HP_Util.h"
@@ -15,12 +15,13 @@ const char *password = HP_STR_PWD;
 static AsyncWebServer server(80);
 static AsyncWebSocket ws("/ws");
 
-static SdHandler sdHandler;
+static FSHandler fsHandler;
 static PrintHandler printHandler(&Serial);
 
 static String printFileName;
-static bool printRequested = false;
 static File printFile;
+static TaskHandle_t ph_Txtask_handle = NULL;
+static TaskHandle_t ph_Rxtask_handle = NULL;
 
 void webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *payload, size_t len)
 {
@@ -34,27 +35,68 @@ void webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEve
     }
     else if (type == WS_EVT_DATA)
     {
-        char filename [124];
-        memcpy(filename, payload, len);
-        filename[len] = '\0';
-        printFileName = (String) filename;
-        printRequested = true;
+        char data [124];
+        memcpy(data, payload, len);
+        data[len] = '\0';
 
-        LOG_Println("payload: '" + printFileName + "', len: " + (String)len);
+        LOG_Println("payload: " + (String)data + ", len: " + (String)len);
     }
+}
+
+void printTx_service_task(void *pvParameters)
+{
+    for(;;)
+    {
+        /* printing powerhouse :D */
+        printHandler.loopTx();
+    }
+    vTaskDelete(NULL);
+    ph_Txtask_handle = NULL;
+}
+
+void printRx_service_task(void *pvParameters)
+{
+    for(;;)
+    {
+        /* printing powerhouse :D */
+        printHandler.loopRx();
+    }
+    vTaskDelete(NULL);
+    ph_Txtask_handle = NULL;
+}
+
+void setup_ph_task()
+{
+    /* our print handler, maybe move it to the other core */
+    printHandler.begin(250000, &ws);
+
+    xTaskCreateUniversal(printTx_service_task, 
+                        "ph_Txtask", 
+                        8192 * 2, 
+                        NULL, 
+                        1, 
+                        &ph_Txtask_handle, 
+                        0);
+
+    xTaskCreateUniversal(printRx_service_task, 
+                        "ph_Rxtask", 
+                        8192 * 2, 
+                        NULL, 
+                        1, 
+                        &ph_Rxtask_handle, 
+                        0);
 }
 
 void setup(void)
 {
     LOG_Init();
     
-    while (!sdHandler.begin())
+    disableCore0WDT();
+    disableCore1WDT();
+
+    while (!fsHandler.begin())
     {
-        LOG_Println("Failed to init SD");
-    }
-    if (!SPIFFS.begin())
-    {
-        LOG_Println("An Error has occurred while mounting SPIFFS");
+        LOG_Println("Failed to init FS");
     }
 
     WiFi.mode(WIFI_STA);
@@ -71,18 +113,17 @@ void setup(void)
     LOG_Println("Connected! IP address: ");
     LOG_Println(WiFi.localIP());
 
+    /* serve css file */
     server.on("/www/style.css", HTTP_GET, [&](AsyncWebServerRequest *request) {
-        LOG_Println("req style.css");
         request->send(SPIFFS, "/www/style.css", "text/css");
     });
-
+    /* serve html file */
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
         request->send(SPIFFS, "/www/index.html", "text/html");
     });
 
     server.on("/", HTTP_POST, [&](AsyncWebServerRequest *request) {
-            LOG_Println("req POST /");
-
+            /* this will get called after the req is completed */
             request->send(SPIFFS, "/www/index.html", "text/html");
         },
         [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
@@ -92,13 +133,20 @@ void setup(void)
             request->send(403, "text/plain", "Job not acccepted");
         }
         else
-        {
+        { 
             String filePath = "/gcode/" + filename;
+
+            if((fsHandler.getStorageType() == FS_SPIFFS) && 
+                (filePath.length() > fsHandler.maxPathLen()))
+            {
+                filePath = "/upld.gcode";
+            }
+            LOG_Println(filePath);
             /* first chunk, index is the byte index in the data, len is the current chunk length sent */
             if (!index)
             {
-                sdHandler.remove(filePath);
-                request->_tempFile = sdHandler.openFile(filePath, FILE_WRITE);
+                fsHandler.remove(filePath);
+                request->_tempFile = fsHandler.openFile(filePath, FILE_WRITE);
             }
 
             /* write the received bytes */
@@ -114,18 +162,17 @@ void setup(void)
     });
 
     server.on("/request", HTTP_ANY, [](AsyncWebServerRequest *request) {
-        LOG_Println("req /reqPrint");
         int code = 403;
         String text;
         if (request->hasArg("filename"))
         {
             printFileName = request->arg("filename");
 
-            if (sdHandler.exists(printFileName))
+            if (fsHandler.exists(printFileName))
             {
                 if (!printHandler.isPrinting())
                 {
-                    printFile = sdHandler.openFile(printFileName, "r");
+                    printFile = fsHandler.openFile(printFileName, "r");
                     printHandler.startPrint(printFile);
                     code = 200;
                     text = "OK";
@@ -165,30 +212,88 @@ void setup(void)
     });
     
     server.on("/dirs", HTTP_GET, [](AsyncWebServerRequest *request) {
-        LOG_Println("req /dirs");
         if (printHandler.isPrinting())
         {
             request->send(403, "text/plain", "Job not acccepted");
         }
         else
         {
-            request->send(200, "text/plain", sdHandler.jsonifyDir("/gcode", ".gcode"));
+            String dir;
+            if(fsHandler.getStorageType() == FS_SPIFFS)
+            {
+                dir = "/";
+            }
+            else
+            {
+                dir = "/gcode";
+            }
+            request->send(200, "text/plain", fsHandler.jsonifyDir(dir, ".gcode"));
         }
+    });
+
+    server.on("/stats", HTTP_GET, [](AsyncWebServerRequest *request) {
+        String result;
+        TaskStatus_t *pxTaskStatusArray;
+        volatile UBaseType_t uxArraySize, x;
+        uint32_t ulTotalRunTime, ulStatsAsPercentage;
+
+        /* Take a snapshot of the number of tasks in case it changes while this
+        function is executing. */
+        uxArraySize = uxTaskGetNumberOfTasks();
+
+        /* Allocate a TaskStatus_t structure for each task.  An array could be
+        allocated statically at compile time. */
+        pxTaskStatusArray = (TaskStatus_t *)pvPortMalloc(uxArraySize * sizeof(TaskStatus_t));
+
+        /* Generate raw status information about each task. */
+        uxArraySize = uxTaskGetSystemState(pxTaskStatusArray,
+                                           uxArraySize,
+                                           &ulTotalRunTime);
+
+        /* For percentage calculations. */
+        ulTotalRunTime /= 100UL;
+
+        /* Avoid divide by zero errors. */
+        if (ulTotalRunTime > 0)
+        {
+            /* For each populated position in the pxTaskStatusArray array,
+         format the raw data as human readable ASCII data. */
+            for (x = 0; x < uxArraySize; x++)
+            {
+                /* What percentage of the total run time has the task used?
+            This will always be rounded down to the nearest integer.
+            ulTotalRunTimeDiv100 has already been divided by 100. */
+                ulStatsAsPercentage =
+                    pxTaskStatusArray[x].ulRunTimeCounter / ulTotalRunTime;
+
+                result += "\r\nName:" + (String)pxTaskStatusArray[x].pcTaskName +
+                          "\r\n\tPirority: " + (String)pxTaskStatusArray[x].uxCurrentPriority +
+                          "\r\n\tRuntimeCtr: " + (String)pxTaskStatusArray[x].ulRunTimeCounter +
+                          "\r\n\tPercentage: " + (String)ulStatsAsPercentage;
+            }
+        }
+
+        ws.textAll(result);
+        /* The array is no longer needed, free the memory it consumes. */
+        vPortFree(pxTaskStatusArray);
     });
 
     /* init utilities */
     util_init();
-    /* inir OTA services */
+    
+    /* init OTA services */
     ota_init(server);
+    
     /* websocket handler config */
     ws.onEvent(webSocketEvent);
     server.addHandler(&ws);
+    
     /* start our async server */
     server.begin();
-    /* our print handler, maybe move it to the other core */
-    printHandler.begin(250000, &ws);
     
-    Serial.setDebugOutput(true);
+    /* setup PrintHandler task */
+    setup_ph_task();
+
     /* signal successful init */
     util_blink_status();
 }
@@ -198,19 +303,10 @@ void loop(void)
     /* telnet support */
     // util_telnetLoop();
 
-    // if(printRequested)
-    // {            
-    //     printRequested = false;
-    //     printFile = sdHandler.openFile(printFileName, "r");
-    //     printHandler.startPrint(printFile);
-    // }
-
     /* check if a reboot is required */
     ota_loop();
 
-    /* printing powerhouse :D */
-    printHandler.loop();
-
+    listTasks();
     // util_telnetSend("This is a test" + i);
     // ws.textAll(JSONtxt);
 }

@@ -8,5 +8,7 @@ extern void util_telnetLoop();
 extern String util_millisToTime();
 extern void util_telnetSend(String line);
 extern void util_blink_status();
+extern void listTasks();
+
 
 #endif

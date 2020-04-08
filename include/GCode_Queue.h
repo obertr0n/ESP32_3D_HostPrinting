@@ -29,19 +29,19 @@ public:
     bool isEmpty() { return (!_full && (_tail == _head)); };
     uint32_t freeSlots()
     {
-        uint32_t size = 0;
+        uint32_t free = 0;
         if(!_full)
         {
             if(_head > _tail)
             {
-                size = _head - _tail;
+                free = _head - _tail;
             }
             else
             {
-                size = MAX_QUEUE_LENGTH + _head - _tail;
+                free = MAX_QUEUE_LENGTH + _head - _tail;
             }            
         }        
-        return size;
+        return free;
     };
 };
 
