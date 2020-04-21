@@ -65,35 +65,35 @@ void webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEve
 //     ph_Txtask_handle = NULL;
 // }
 
-// void setup_ph_task()
-// {
-//     /* our print handler, maybe move it to the other core */
-//     printHandler.begin(250000, &ws);
+void setup_ph_task()
+{
+    /* our print handler, maybe move it to the other core */
+    printHandler.begin(&ws);
 
-//     xTaskCreateUniversal(printTx_service_task, 
-//                         "ph_Txtask", 
-//                         8192 * 2, 
-//                         NULL, 
-//                         1, 
-//                         &ph_Txtask_handle, 
-//                         0);
+    // xTaskCreateUniversal(printTx_service_task, 
+    //                     "ph_Txtask", 
+    //                     8192 * 2, 
+    //                     NULL, 
+    //                     1, 
+    //                     &ph_Txtask_handle, 
+    //                     0);
 
-//     xTaskCreateUniversal(printRx_service_task, 
-//                         "ph_Rxtask", 
-//                         8192 * 2, 
-//                         NULL, 
-//                         1, 
-//                         &ph_Rxtask_handle, 
-//                         0);
-// }
+    // xTaskCreateUniversal(printRx_service_task, 
+    //                     "ph_Rxtask", 
+    //                     8192 * 2, 
+    //                     NULL, 
+    //                     1, 
+    //                     &ph_Rxtask_handle, 
+    //                     0);
+}
 
 void setup(void)
 {
     LOG_Init();
-    printHandler.begin(250000, &ws);
+    // printHandler.begin(250000, &ws);
     
-    // disableCore0WDT();
-    // disableCore1WDT();
+    disableCore0WDT();
+    disableCore1WDT();
 
     while (!fsHandler.begin())
     {
@@ -113,6 +113,19 @@ void setup(void)
 
     LOG_Println("Connected! IP address: ");
     LOG_Println(WiFi.localIP());
+
+    /* init utilities */
+    util_init();
+    
+    /* init OTA services */
+    ota_init(server);
+    
+    /* websocket handler config */
+    ws.onEvent(webSocketEvent);
+    server.addHandler(&ws);
+    
+    /* setup PrintHandler task */
+    setup_ph_task();
 
     /* serve css file */
     server.on("/www/style.css", HTTP_GET, [&](AsyncWebServerRequest *request) {
@@ -262,20 +275,7 @@ void setup(void)
         ws.textAll(result);
         /* The array is no longer needed, free the memory it consumes. */
         vPortFree(pxTaskStatusArray);
-    });
-
-    /* init utilities */
-    util_init();
-    
-    /* init OTA services */
-    ota_init(server);
-    
-    /* websocket handler config */
-    ws.onEvent(webSocketEvent);
-    server.addHandler(&ws);
-    
-    /* setup PrintHandler task */
-    // setup_ph_task();    
+    });   
 
     /* start our async server */
     server.begin();
