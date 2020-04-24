@@ -8,10 +8,29 @@ body {
     width: 50%;
 }
 
+#navbuttons {
+    width: 100%;
+    height: 14px;
+}
+
+.tablink {
+    background-color: #555;
+    color: white;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    font-size: 17px;
+    width: 25%;
+  }
+
 #uploadfrm {
-    border: 1px solid #ddd;
-    padding: 5px;
-    border-radius: 10px;
+    width: 100%;
+}
+
+#uploadbtn{
+    float: right;
 }
 
 #inpfile {
@@ -19,12 +38,13 @@ body {
 }
 
 #linpfile {
-    width: 100%;
+    width: 20%;
     border: 1px solid #ddd;
     border-radius: 6px;
     font-size: 18px;
     background-color: #f1f1f1;
-    text-align: left;
+    /* text-align: left; */
+    float:left;
     cursor: pointer;
 }
 
@@ -39,47 +59,34 @@ body {
     height: 10px
 }
 
-.uploadbtn {
+.button {
     background: #f1f1f1;
     color: #777;
     cursor: pointer;
     font-size: 15px;
-    height: 30px;
-    border-radius: 5px;
 }
 
-.refreshbtn {
-    background: #f1f1f1;
-    color: #777;
+#refresh {
     cursor: pointer;
-    font-size: 15px;
-    height: 24px;
+    font-size: 13px;
+    height: 20px;
     border-radius: 5px;
+    text-align: center;
+    float: left;
 }
 
 #otaupload {
     position: relative;
-    width: 350px;
+    /* width: 350px; */
     background-color: #FFFFFF;
     border-radius: 5px;
     padding: 15px;
 }
 
-#container,
-#commandArea {
-    background-color: #FFFFFF;
-    border-radius: 5px;
-    padding: 15px;
-    float: left;
-    clear: none;
-}
-
-#table {
-    min-width: 740px;
+#ftable {
     float: right;
     padding: 5px;
-    border: 1px solid #ddd;
-    border-radius: 10px;
+    background-color: #FFFFFF;
 }
 
 table tr {
@@ -107,7 +114,7 @@ thead th {
 tr {
     float: left;
     width: 100%;
-    min-width: 740px;
+    /* min-width: 764px; */
     border-bottom: 1px slategrey;
 }
 
@@ -118,15 +125,14 @@ td {
     padding-top: 5px;
 }
 
-#thname {
+#thname,
+#tdname {
     float: left;
-    width: 83%;
+    width: 73%;
     text-align: center;
 }
 
 #tdname {
-    float: left;
-    width: 83%;
     text-align: left;
 }
 
@@ -140,24 +146,54 @@ td {
 #tdprint,
 #thprint {
     float: left;
-    width: 6%;
+    width: 7%;
 }
 
 #tdprint {
-    color: lightgrey;
     cursor: pointer;
     text-align: center;
 }
 
+#thdelete,
+#tddelete {
+    width: 5%;
+    text-align: center;
+}
+
+#tddelete{    
+    color: red;
+    cursor: pointer;
+}
+
+#commandArea {
+    background-color: #FFFFFF;
+    padding: 5px;
+}
+
 #commandsText {
-    min-width: 740px;
+    max-width: 768px;
+    margin-top: 10px;
+    width: 100%;
     min-height: 160px;
+    padding: 0;
+}
+
+#commandForm
+{
+    margin-top: 10px;
 }
 
 #icommand {
     width: 50%;
 }
 
+*.unselectable {
+    -moz-user-select: -moz-none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+ }
 
 /* Responsive layout - makes the three columns stack on top of each other instead of next to each other */
 
@@ -166,3 +202,108 @@ td {
         width: 100%;
     }
 }
+
+.sliderthumb {
+    position: absolute;
+    cursor: pointer;
+  }
+
+  .sliderrange {
+    cursor: pointer;
+  }
+
+  .extlist {
+    position: absolute;
+    cursor: pointer;
+  }
+
+  .hotspot {
+    cursor: pointer;
+  }
+
+  text.centerjog {
+    font-weight: 600;
+    text-anchor: middle;
+    font-size: 26px;
+    font-family: sans-serif;
+    pointer-events: none;
+  }
+
+  text.home {
+    font-weight: 800;
+    text-anchor: middle;
+    font-size: 14px;
+    font-family: sans-serif;
+    pointer-events: none;
+  }
+
+  text.positionbar {
+    font-weight: 600;
+    text-anchor: middle;
+    font-size: 16px;
+    font-family: sans-serif;
+    pointer-events: none;
+    width: 100%;
+  }
+
+  text.textpositionbar {
+    font-weight: 400;
+    text-anchor: end;
+    font-size: 12px;
+    font-family: sans-serif;
+    pointer-events: none;
+    fill: #FF0000;
+  }
+
+  text.textbutton {
+    font-weight: 400;
+    text-anchor: middle;
+    font-size: 26px;
+    font-family: sans-serif;
+    fill: #FFFFFF;
+    filter: url(#emboss);
+    pointer-events: none;
+  }
+
+  path.msk {
+    fill: #0052E1;
+  }
+
+  circle.bg2 {
+    stroke: #0D2F38;
+    fill: #B93D3D;
+    pointer-events: none;
+    stroke-width: 0.5;
+  }
+
+  circle.bg,
+  path.bg {
+    stroke: #0D2F38;
+    fill: #608B98;
+    pointer-events: none;
+    stroke-width: 0.5;
+  }
+
+  rect.bg {
+    stroke: #0D2F38;
+    fill: #608B98;
+    pointer-events: none;
+    stroke-width: 1;
+  }
+
+  rect.bgpositionbar {
+    stroke: #707070;
+    fill: #BCCED3;
+    pointer-events: none;
+    stroke-width: 1;
+  }
+
+  path.sign {
+    pointer-events: none;
+    fill: #000000;
+  }
+
+  path.mskjog {
+    opacity: 0;
+    fill: #0052E1;
+  }

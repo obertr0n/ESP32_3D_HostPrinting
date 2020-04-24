@@ -187,10 +187,62 @@ void setup(void)
                 }
                 else
                 {
-                    code = 403;
                     text = "Job not acccepted";
                 }
             }
+            else
+            {
+                text = "File not found!";
+            }
+        }
+        else if (request->hasArg("gcodecmd"))
+        {
+            text = request->arg("gcodecmd");
+            if (printHandler.add(text))
+            {
+                code = 200;
+                text = "OK";
+            }
+            else
+            {
+                text = "Job not acccepted";
+            }
+        }
+        else if(request->hasArg("deletef"))
+        {
+            String fileName = request->arg("deletef");
+            Serial.println("deletef " + fileName);
+            if (fsHandler.remove(fileName))
+            {
+                code = 200;
+                text = "OK";
+            }
+            else
+            {
+                text = "File not found!";
+            }
+        }
+        else
+        {
+            text = "Job not acccepted";
+        }
+        request->send(code, "text/plain", text);
+    });
+    
+    server.on("/del", HTTP_ANY, [](AsyncWebServerRequest *request) {
+        int code = 403;
+        String text;
+        if (request->hasArg("filename"))
+        {
+            printFileName = request->arg("filename");
+
+            if (fsHandler.exists(printFileName))
+            {
+                printFile = fsHandler.openFile(printFileName, FILE_READ);
+                printHandler.startPrint(printFile);
+                code = 200;
+                text = "OK";
+             }
             else
             {
                 code = 403;
@@ -208,7 +260,7 @@ void setup(void)
             else
             {
                 code = 403;
-                text = "Job not acccepted";
+                text = "Job not accepted";
             }
         }
         else
@@ -218,7 +270,6 @@ void setup(void)
         }
         request->send(code, "text/plain", text);
     });
-    
     server.on("/dirs", HTTP_GET, [](AsyncWebServerRequest *request) {
         if (printHandler.isPrinting())
         {

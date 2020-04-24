@@ -1,9 +1,14 @@
 #include "Print_Handler.h"
 #include "HP_Config.h"
 
+const String PrintHandler::FIRMWARE_NAME_STR = "FIRMWARE_NAME:";
+const String PrintHandler::EXTRUDER_CNT_STR = "EXTRUDER_COUNT:";
+const String PrintHandler::OK_STR = "ok";
+
 void PrintHandler::begin(AsyncWebSocket *ws)
 {
     _aWs = ws;
+    _serial->begin(BAUD_RATES[0]);
 }
 
 void PrintHandler::preBuffer()
@@ -68,15 +73,12 @@ void PrintHandler::detectPrinter()
 {
     static uint16_t baudIndex = 0;
 
-    if((!_printerConnected) && (millis() >= _commTout))
+    if ((!_printerConnected) && (millis() >= _commTout))
     {
-        _serial->begin(BAUD_RATES[baudIndex]);
+        _serial->updateBaudRate(BAUD_RATES[baudIndex]);
         sendM115();
-        
-        // _serial->println(baudIndex);
-        // _serial->println(BAUD_RATES[baudIndex]);
 
-        baudIndex++;
+        baudIndex += 1;
         baudIndex %= BAUD_RATES_COUNT;
         resetCommTimeout();
     }
@@ -96,49 +98,38 @@ bool PrintHandler::send(String &command)
 /*  T:110.03 /190.00 B:50.68 /0.00 @:0 B@:0 W:? */
 bool PrintHandler::parseTemp(const String &line)
 {
-    bool foundTemp = false;
-    _serial->println(line);
-    
     int t_pos = line.indexOf("T:");
     if (t_pos >= 0)
     {
         int tslh_pos = line.indexOf("/", t_pos);
-        if(tslh_pos >= 0)
+        if (tslh_pos >= 0)
         {
-            String h_temp = line.substring(t_pos+2, tslh_pos);
-            _serial->println(h_temp);
-            foundTemp = true;
+            _extTemp[0] = line.substring(t_pos + 2, tslh_pos);
         }
         int b_pos = line.indexOf("B:");
         if (b_pos >= 0)
-        {        
-            String h_preset = line.substring(tslh_pos+1, b_pos);
-            _serial->println(h_preset);
-            foundTemp = true;
-
+        {
+            _extTempPreset[0] = line.substring(tslh_pos + 1, b_pos);
             int bslh_pos = line.indexOf(" /", b_pos);
-            if(bslh_pos >= 0)
+            if (bslh_pos >= 0)
             {
-                String b_temp = line.substring(b_pos+2, bslh_pos);
-                _serial->println(b_temp);
-                foundTemp = true;
-
+                _bedTemp = line.substring(b_pos + 2, bslh_pos);
                 int at_pos = line.indexOf(" @");
-                if(at_pos >= 0)
+                if (at_pos >= 0)
                 {
-                    String b_preset = line.substring(bslh_pos+2, at_pos);
-                    _serial->println(b_preset);
-                    foundTemp = true;
+                    _bedTempPrest = line.substring(bslh_pos + 2, at_pos);
+                    return true;
                 }
             }
         }
     }
 
-    return foundTemp;
+    return false;
 }
 
 bool PrintHandler::parse503(const String &line)
 {
+    _serial->println("parse503");
     return false;
 }
 
@@ -170,102 +161,90 @@ bool PrintHandler::parse503(const String &line)
     Cap:CHAMBER_TEMPERATURE:0 */
 bool PrintHandler::parseM115(const String &line)
 {
-    bool retVal = false;
-
-    int fwname_pos = line.indexOf("FIRMWARE_NAME:");
-    if(fwname_pos >= 0)
+    int fwname_pos = line.indexOf(FIRMWARE_NAME_STR);
+    if (fwname_pos >= 0)
     {
-        String fwName = line.substring(fwname_pos, fwname_pos+7);
-        _serial->println(fwName);
-
-        retVal = true;
+        fwname_pos += FIRMWARE_NAME_STR.length();
+        String fwName = line.substring(fwname_pos, fwname_pos + 7);
+        int extruderCnt_pos = line.indexOf(EXTRUDER_CNT_STR);
+        if (extruderCnt_pos >= 0)
+        {
+            extruderCnt_pos += EXTRUDER_CNT_STR.length();
+            String extCnt = line.substring(extruderCnt_pos, extruderCnt_pos + 1);
+            int ok_pos = line.indexOf(OK_STR);
+            if (ok_pos >= 0)
+            {
+                return true;
+            }
+        }
     }
-    int extruderCnt_pos = line.indexOf("EXTRUDER_COUNT:");
-    if(extruderCnt_pos >= 0)
-    {
-        String extCnt = line.substring(extruderCnt_pos, 1);
-        _serial->println(extCnt);
-
-        retVal = true;
-    }
-
-    return retVal;
+    return false;
 }
 
 void PrintHandler::processSerialRx()
 {
-    static int lineStartPos = 0;
-    static String serialResponse;
+    static int startLine = 0;
+    static String serialBuff;
 
     while (_serial->available())
     {
-        char ch = (char)_serial->read();
-        if (ch != '\n')
+        char c = (char)_serial->read();
+        serialBuff += c;
+
+        if (c == '\n')
         {
-            serialResponse += ch;
-        }
-        else
-        {
-            bool incompleteResponse = false;
-            if(PH_M115 == _prevCmd)
+            bool replyFound = true;
+            if (PH_CMD_M115 == _prevCmd && _state == PH_STATE_NC)
             {
-                if(parseM115(serialResponse))
+                if (parseM115(serialBuff))
                 {
                     _state = PH_STATE_CONNECTED;
                     _printerConnected = true;
                 }
-            }
-            if (serialResponse.startsWith("ok", lineStartPos))
-            {
-                _ackRcv = true;
-                incompleteResponse = false;
-            }
-            else if (_printerConnected)
-            {
-                if(parseTemp(serialResponse))
+                else
                 {
-                    incompleteResponse = false;
+                    replyFound = false;
                 }
-                if (serialResponse.startsWith("echo:busy"))
+            }
+            else
+            {
+                if (serialBuff.startsWith(OK_STR, startLine))
+                {
+                    _ackRcv = true;
+                }
+                if (parseTemp(serialBuff))
+                {
+                    resetCommTimeout();
+                }
+                if (serialBuff.startsWith("echo:busy"))
                 {
                     _ackRcv = false;
                 }
-                // else if (serialResponse.startsWith("echo: cold extrusion prevented"))
-                // {
-                //     // To do: Pause sending gcode, or do something similar
-                //     // responseDetail = "cold extrusion";
-                // }
-                else if (serialResponse.startsWith("Error:"))
+                else if (serialBuff.startsWith("Error:"))
                 {
                     _ackRcv = false;
                     _printCanceled = true;
                 }
                 else
                 {
-                    incompleteResponse = true;
+                    replyFound = false;
                 }
             }
-            else
-            {
-                incompleteResponse = true;
-            }
 
-            // transmit back what we received
-            if (_aWs->availableForWriteAll())
+            int replyLen = serialBuff.length();
+            if (replyFound)
             {
-                _aWs->textAll(serialResponse);
-            }
-
-            int responseLength = serialResponse.length();
-            if (incompleteResponse)
-            {
-                lineStartPos = responseLength;
+                // transmit back what we received
+                if (_aWs->availableForWriteAll())
+                {
+                    _aWs->textAll(serialBuff);
+                }
+                replyLen = 0;
+                serialBuff = "";            
             }
             else
             {
-                // lastReceivedResponse = serialResponse;
-                lineStartPos = 0;
-                serialResponse = "";
+                startLine = replyLen;
             }
         }
     }
@@ -284,6 +263,7 @@ void PrintHandler::processSerialTx()
             write(printerCommand);
             /* reset it only when the transmission is done? */
             _ackRcv = false;
+            _prevCmd = PH_CMD_OTHER;
             if (_aWs->availableForWriteAll())
             {
                 _aWs->textAll(printerCommand);
@@ -326,7 +306,15 @@ void PrintHandler::loopTx()
         detectPrinter();
         break;
     case PH_STATE_CONNECTED:
-
+        _prevCmd = PH_CMD_OTHER;
+        _state = PH_STATE_IDLE;
+        break;
+    case PH_STATE_IDLE:
+        if (_printRequested)
+        {
+            _state = PH_STATE_PRINT_REQ;
+            _printRequested = false;
+        }
         break;
     case PH_STATE_PRINT_REQ:
         _printStarted = true;
@@ -356,8 +344,5 @@ void PrintHandler::loopTx()
 
 void PrintHandler::loopRx()
 {
-    // if (_printerConnected)
-    // {
-        processSerialRx();
-    // }
+    processSerialRx();
 }
