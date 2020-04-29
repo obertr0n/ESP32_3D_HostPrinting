@@ -1,4 +1,4 @@
-#include "gCode_Queue.h"
+#include "GCode_Queue.h"
 
 String MsgQueue::pop()
 {
@@ -19,9 +19,9 @@ String MsgQueue::pop()
     /* update the tail */
     _tail = next;
     _full = false;
-
+    
     /* get the data */
-    return _msgQueue[_tail];
+    return _msgQueue[_tail - 1];
 }
 
 bool MsgQueue::push(const String& msg)

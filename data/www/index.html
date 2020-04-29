@@ -4,6 +4,7 @@
 <html>
 
 <head>
+    <!-- <link rel="stylesheet" type="text/css" href="/www/style.css"> -->
     <link rel="stylesheet" type="text/css" href="style.css">
     <title>ESP32 HostPrint</title>
 </head>
@@ -11,15 +12,65 @@
 <body onload="Init(); getDirs()">
     <div id="container">
         <div id="status">
-            Stationary text
+            <table id="tpossts">
+                <tbody>
+                    <tr>
+                        <td class='lposinfo'>X:</td>
+                        <td id='posx'>xxx.rr</td>
+                        <td class='lposinfo'>Y:</td>
+                        <td id='posy'>yyy.rr</td>
+                        <td class='lposinfo'>Z:</td>
+                        <td id='posz'>zzz.rr</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <table id="ttempsts">
+                <tbody>
+                    <tr id="trtempsts">
+                        <td><label>bbb.bb</label></td>
+                        <td>
+                            <svg width="30" height="20">
+                                <g id="bed" class="hotspot">
+                                    <rect x="0" y="0" width="24" height="24" fill="#3498db"></rect>
+                                    <polygon id="b1" points="5,0 24,0 28,19 1,19" fill="none" stroke="#000000"
+                                        stroke-width="2" style="stroke: rgb(0, 0, 0);"></polygon>
+                                    <line id="b2" x1="11" y1="0" x2="10" y2="19" stroke="#000000" stroke-width="2"
+                                        style="stroke: rgb(0, 0, 0);"></line>
+                                    <line id="b3" x1="18" y1="0" x2="19" y2="19" stroke="#000000" stroke-width="2"
+                                        style="stroke: rgb(0, 0, 0);"></line>
+                                    <line id="b4" x1="3" y1="13" x2="26" y2="13" stroke="#000000" stroke-width="2"
+                                        style="stroke: rgb(0, 0, 0);"></line>
+                                    <line id="b5" x1="4" y1="6" x2="25" y2="6" stroke="#000000" stroke-width="2"
+                                        style="stroke: rgb(0, 0, 0);">
+                                    </line>
+                                    <!-- <polygon id="red_bed" points="21,0 23,2 4,21 2,19" fill="#FF0000" stroke="#FFFFFF" opacity="0" style="opacity: 1;"></polygon> -->
+                                </g>
+                            </svg>
+                        </td>
+                        <td>eee.ee</td>
+                        <td>
+                            <svg width="20" height="20">
+                                <g id="ext1" class="hotspot">
+                                    <rect x="0" y="0" width="24" height="24" fill="#3498db"></rect>
+                                    <path id="e11" d="M1,0 L8,0 L8,15 L4.5,21 L1,15 z" style="fill: rgb(0, 0, 0);">
+                                    </path>
+                                    <text id="e12" x="10" y="15.5" class="slide" style="fill: rgb(0, 0, 0);">1</text>
+                                    <!-- <polygon id="red_ext1" points="21,0 23,2 4,21 2,19" fill="#FF0000" stroke="#FFFFFF" opacity="0" style="opacity: 1;"></polygon> -->
+                                </g>
+                            </svg>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
         <div id="navbuttons">
-            <button class="tablink" onclick="openPage('Control', this, 'red')" id="defaultOpen">Control</button>
-            <button class="tablink" onclick="openPage('Files', this, 'red')">Files</button>
-            <button class="tablink" onclick="openPage('Settings', this, 'blue')">Settings</button>
-            <button class="tablink" onclick="openPage('About', this, 'orange')">About</button>
+            <button class="tablink" onclick="openPage('controltab', this, 'red')" id="defaultOpen">Control</button>
+            <button class="tablink" onclick="openPage('filestab', this, 'green')">Files</button>
+            <button class="tablink" onclick="openPage('filestab', this, 'blue')">Settings</button>
+            <button class="tablink" onclick="openPage('filestab', this, 'orange')">About</button>
         </div>
-        <div id="Files" class="tabcontent">
+        <div id="filestab" class="tabcontent">
             <div id="ftable">
                 <div id="fileup">
                     <form class='form' enctype='multipart/form-data' id='uploadfrm' name='uploadform' method='POST'>
@@ -35,7 +86,7 @@
                         <div id='iprgbar'> </div>
                     </div>
                 </div>
-                <table id="tfiles">
+                <table id="tfiles" class="tfiles">
                     <thead id="tfileshead">
                         <tr>
                             <th id="thname" class="unselectable" unselectable="on">
@@ -45,7 +96,7 @@
                                             d="M 7.1601562 3 L 8.7617188 5 L 19 5 L 19 15 L 16 15 L 20 20 L 24 15 L 21 15 L 21 3 L 7.1601562 3 z M 4 4 L 0 9 L 3 9 L 3 21 L 16.839844 21 L 15.238281 19 L 5 19 L 5 9 L 8 9 L 4 4 z" />
                                     </svg>
                                 </div>
-                                Files
+                                <label>Files</label>
                             </th>
                             <th id="thprint" class="unselectable" unselectable="on">Print</th>
                             <th id="thsize" class="unselectable" unselectable="on">Size [MB]</th>
@@ -55,67 +106,9 @@
                     <tbody id="tbody"></tbody>
                 </table>
             </div>
-            <!-- 
-        <h1 id='heText' style="display: none; color: red;text-align: center;">Print Request was sent, please monitor
-            your 3D printer</h1> -->
         </div>
-        <div id="Control" class="tabcontent">
+        <div id="controltab" class="tabcontent">
             <div id="printerctrl">
-                <div id="positionbar">
-                    <svg width="759" height="30">
-                        <defs>
-                            <filter id="light">
-                                <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="out1" />
-                                <feSpecularLighting in="out1" surfaceScale="8" specularConstant="2"
-                                    specularExponent="12" result="out3">
-                                    <feDistantLight azimuth="225" elevation="5" />
-                                </feSpecularLighting>
-                                <feComposite operator="in" in="out3" in2="SourceAlpha" result="out4" />
-                                <feMerge>
-                                    <feMergeNode in="SourceGraphic" />
-                                    <feMergeNode in="out4" />
-                                </feMerge>
-                            </filter>
-                            <filter id="shadow" width="200%" height="200%">
-                                <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="out1" />
-                                <feOffset in="out1" dx="2" dy="2" result="out2" />
-                                <feComposite in="SourceGraphic" in2="out2" operator="over" />
-                            </filter>
-                        </defs>
-                        <g id="posxtext">
-                            <rect class="bg" x="0" y="0" width="190" height="27" filter="url(#shadow)" />
-                            <rect class="bg" x="0" y="0" width="190" height="27" opacity="0.7" filter="url(#light)" />
-                            <text x="13" y="19.5" class="positionbar">X</text>
-                            <rect class="bgpositionbar" x="25" y="5.5" width="150" height="17" />
-                            <text id="posx" x="120" y="19" class="textpositionbar">000.000</text>
-                        </g>
-                        <g id="posytext">
-                            <rect class="bg" x="190" y="0" width="190" height="27" filter="url(#shadow)" />
-                            <rect class="bg" x="190" y="0" width="190" height="27" opacity="0.7" filter="url(#light)" />
-                            <text x="203" y="19.5" class="positionbar">Y</text>
-                            <rect class="bgpositionbar" x="215" y="5.5" width="150" height="17" />
-                            <text id="posy" x="315" y="19" class="textpositionbar">000.000</text>
-                        </g>
-                        <g id="posztext">
-                            <rect class="bg" x="380" y="0" width="190" height="27" filter="url(#shadow)" />
-                            <rect class="bg" x="380" y="0" width="190" height="27" opacity="0.7" filter="url(#light)" />
-                            <text x="393" y="19.5" class="positionbar">Z</text>
-                            <rect class="bgpositionbar" x="405" y="5.5" width="150" height="17" />
-                            <text id="posz" x="500" y="19" class="textpositionbar">000.000</text>
-                        </g>
-                        <g id="posextruderlist">
-                            <rect class="bg" x="570" y="0" width="188" height="27" filter="url(#shadow)" />
-                            <rect class="bg" x="570" y="0" width="188" height="27" opacity="0.7" filter="url(#light)" />
-                        </g>
-                    </svg>
-                </div>
-                <div id="extruderlist" class="extlist">
-                    <select id="activeextruder">
-                        <option value="0" selected>Extruder 1</option>
-                        <option value="1">Extruder 2</option>
-                    </select>
-                </div>
-                <br>
                 <div id="jogPanel">
                     <svg viewbox="0 0 440 230">
                         <defs>
@@ -157,7 +150,7 @@
                             </filter>
                         </defs>
                         <g id="Jog" transform="translate(0,-30)">
-                            <g id="homeall" transform="translate(10,175)" onmouseup="sendButtons('G28');"
+                            <g id="homeall" transform="translate(10,175)" onmouseup="sendCommand('G28',false);"
                                 onmouseover="changecolor(ha1,ha2,ha3,ha4,'#2F65FF');"
                                 onmouseout="changecolor(ha1,ha2,ha3,ha4,'#608B98');">
                                 <circle cx='17' cy='17' r='18' fill='#3498db' />
@@ -173,7 +166,7 @@
                                     filter="url(#shadow)" opacity='0.7' filter="url(#light)" />
                             </g>
 
-                            <g id="homex" transform="translate(10,35)" onmouseup="sendButtons('G28 X');"
+                            <g id="homex" transform="translate(10,35)" onmouseup="sendCommand('G28 X',false);"
                                 onmouseover="changecolor(hx1,hx2,hx3,hx4,'#2F65FF');"
                                 onmouseout="changecolor(hx1,hx2,hx3,hx4,'#608B98');">
                                 <circle cx='17' cy='17' r='18' fill='#3498db' />
@@ -190,7 +183,7 @@
                                 <text x="17" y="26" class="home">X</text>
                             </g>
 
-                            <g id="homey" transform="translate(159,35)" onmouseup="sendButtons('G28 Y');"
+                            <g id="homey" transform="translate(159,35)" onmouseup="sendCommand('G28 Y',false);"
                                 onmouseover="changecolor(hy1,hy2,hy3,hy4,'#2F65FF');"
                                 onmouseout="changecolor(hy1,hy2,hy3,hy4,'#608B98');">
                                 <circle cx='17' cy='17' r='18' fill='#3498db' />
@@ -207,7 +200,7 @@
                                 <text x="17" y="26" class="home">Y</text>
                             </g>
 
-                            <g id="homez" transform="translate(159,175)" onmouseup="sendButtons('G28 Z');"
+                            <g id="homez" transform="translate(159,175)" onmouseup="sendCommand('G28 Z',false);"
                                 onmouseover="changecolor(hz1,hz2,hz3,hz4,'#2F65FF');"
                                 onmouseout="changecolor(hz1,hz2,hz3,hz4,'#608B98');">
                                 <circle cx='17' cy='17' r='18' fill='#3498db' />
@@ -229,16 +222,16 @@
                                     filter="url(#shadow)" />
                                 <path class="bg" d="M48,70 A 74,74 0 0,1 154,70 L126,98 A 35,35 0 0 0 76,98 z"
                                     opacity='0.7' filter="url(#light)" />
-                                <path onmouseup="sendButtons('G28 X');" onmouseover="settext_x('50',this);"
+                                <path onmouseup="sendCommand('G0 Y-50',false);" onmouseover="settext_x('-50',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M48,70 A 74,74 0 0,1 154,70 L126,98 A 35,35 0 0 0 76,98 z" />
-                                <path onmouseup="alert(2);" onmouseover="settext_x('10',this);"
+                                <path onmouseup="sendCommand('G0 Y-10',false);" onmouseover="settext_x('-10',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M55,77 A 64,64 0 0,1 147,77 L126,98 A 35,35 0 0 0 76,98 z" />
-                                <path onmouseup="alert(3);" onmouseover="settext_x('1',this);"
+                                <path onmouseup="sendCommand('G0 Y-1',false);" onmouseover="settext_x('-1',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M62,84 A 54,54 0 0,1 140,84 L126,98 A 35,35 0 0 0 76,98 z" />
-                                <path onmouseup="alert(4);" onmouseover="settext_x('0.1',this);"
+                                <path onmouseup="sendCommand('G0 Y-0.1',false);" onmouseover="settext_x('-0.1',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M69,91 A 44,44 0 0,1 133,91 L126,98 A 35,35 0 0 0 76,98 z" />
                                 <path class='sign' d="M101,58 L112,76 L90,76 z" />
@@ -249,16 +242,16 @@
                                     filter="url(#shadow)" />
                                 <path class="bg" d="M154,70 A 74,74 0 0,1 154,174 L126,146 A 35,35 0 0 0 126,98 z"
                                     opacity=0.7 filter="url(#light)" />
-                                <path onmouseup="alert(13);" onmouseover="settext_x('50',this);"
+                                <path onmouseup="sendCommand('G0 X50',false);" onmouseover="settext_x('50',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M154,70 A 74,74 0 0,1 154,174 L126,146 A 35,35 0 0 0 126,98 z" />
-                                <path onmouseup="alert(14);" onmouseover="settext_x('10',this);"
+                                <path onmouseup="sendCommand('G0 X10',false);" onmouseover="settext_x('10',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M147,77 A 64,64 0 0,1 147,167 L126,146 A 35,35 0 0 0 126,98 z" />
-                                <path onmouseup="alert(15);" onmouseover="settext_x('1',this);"
+                                <path onmouseup="sendCommand('G0 X1',false);" onmouseover="settext_x('1',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M140,84 A 54,54 0 0,1 140,160 L126,146 A 35,35 0 0 0 126,98 z" />
-                                <path onmouseup="alert(16);" onmouseover="settext_x('0.1',this);"
+                                <path onmouseup="sendCommand('G0 X0.1',false);" onmouseover="settext_x('0.1',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M133,91 A 44,44 0 0,1 133,153 L126,146 A 35,35 0 0 0 126,98 z" />
                                 <path class='sign' d="M165,122 L148,112 L148,132 z" />
@@ -269,16 +262,16 @@
                                     filter="url(#shadow)" />
                                 <path class="bg" d="M48,174 A 74,74 0 0,0 154,174 L126,146 A 35,35 0 0 1 76,146 z"
                                     opacity='0.7' filter="url(#light)" />
-                                <path onmouseup="alert(8);" onmouseover="settext_x('-50',this);"
+                                <path onmouseup="sendCommand('G0 Y50',false);" onmouseover="settext_x('50',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M48,174 A 74,74 0 0,0 154,174 L126,146 A 35,35 0 0 1 76,146 z" />
-                                <path onmouseup="alert(7);" onmouseover="settext_x('-10',this);"
+                                <path onmouseup="sendCommand('G0 Y10',false);" onmouseover="settext_x('10',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M55,167 A 64,64 0 0,0 147,167 L126,146 A 35,35 0 0 1 76,146 z" />
-                                <path onmouseup="alert(6);" onmouseover="settext_x('-1',this);"
+                                <path onmouseup="sendCommand('G0 Y1',false);" onmouseover="settext_x('1',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M62,160 A 54,54 0 0,0 140,160 L126,146 A 35,35 0 0 1 76,146 z" />
-                                <path onmouseup="alert(5);" onmouseover="settext_x('-0.1',this);"
+                                <path onmouseup="sendCommand('G0 Y0.1',false);" onmouseover="settext_x('0.1',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M69,153 A 44,44 0 0,0 133,153 L126,146 A 35,35 0 0 1 76,146 z" />
                                 <path class='sign' d="M101,186 L112,168 L90,168 z" />
@@ -288,16 +281,16 @@
                                 <path class="bg" d="M48,174 A 74,74 0 0,1 48,70 L76,98 A 35,35 0 0 0 76,146 z" />
                                 <path class="bg" d="M48,174 A 74,74 0 0,1 48,70 L76,98 A 35,35 0 0 0 76,146 z"
                                     opacity='0.7' filter="url(#light)" />
-                                <path onmouseup="alert(9);" onmouseover="settext_x('-50',this);"
+                                <path onmouseup="sendCommand('G0 X-50',false);" onmouseover="settext_x('-50',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M48,174 A 74,74 0 0,1 48,70 L76,98 A 35,35 0 0 0 76,146 z" />
-                                <path onmouseup="alert(10);" onmouseover="settext_x('-10',this);"
+                                <path onmouseup="sendCommand('G0 X-10',false);" onmouseover="settext_x('-10',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M55,167 A 64,64 0 0,1 55,77 L76,98 A 35,35 0 0 0 76,146 z" />
-                                <path onmouseup="alert(11);" onmouseover="settext_x('-1',this);"
+                                <path onmouseup="sendCommand('G0 X-1',false);" onmouseover="settext_x('-1',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M62,160 A 54,54 0 0,1 62,84 L76,98 A 35,35 0 0 0 76,146 z" />
-                                <path onmouseup="alert(12);" onmouseover="settext_x('-0.1',this);"
+                                <path onmouseup="sendCommand('G0 X-0.1',false);" onmouseover="settext_x('-0.1',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M69,153 A 44,44 0 0,1 69,91 L76,98 A 35,35 0 0 0 76,146 z" />
                                 <path class='sign' d="M37,122 L54,112 L54,132 z" />
@@ -314,16 +307,16 @@
                                     filter="url(#shadow)" />
                                 <path class="bg" d="M214,56 A 74,74 0 0,1 288,56 L268,92 A 35,35 0 0 0 234,92 z"
                                     opacity='0.7' filter="url(#light)" />
-                                <path onmouseup="alert(17);" onmouseover="settext_z('10',this);"
+                                <path onmouseup="sendCommand('G0 Z10',false);" onmouseover="settext_z('10',this);"
                                     onmouseout="restore_z(this);" class="mskjog"
                                     d="M214,56 A 74,74 0 0,1 288,56 L268,92 A 35,35 0 0 0 234,92 z" />
-                                <path onmouseup="alert(18);" onmouseover="settext_z('1',this);"
+                                <path onmouseup="sendCommand('G0 Z1',false);" onmouseover="settext_z('1',this);"
                                     onmouseout="restore_z(this);" class="mskjog"
                                     d="M219,65 A 64,64 0 0,1 283,65 L268,92 A 35,35 0 0 0 234,92 z" />
-                                <path onmouseup="alert(19);" onmouseover="settext_z('0.1',this);"
+                                <path onmouseup="sendCommand('G0 Z0.1',false);" onmouseover="settext_z('0.1',this);"
                                     onmouseout="restore_z(this);" class="mskjog"
                                     d="M224,74 A 54,54 0 0,1 278,74 L268,92 A 35,35 0 0 0 234,92 z" />
-                                <path onmouseup="alert(20);" onmouseover="settext_z('0.01',this);"
+                                <path onmouseup="sendCommand('G0 Z0.01',false);" onmouseover="settext_z('0.01',this);"
                                     onmouseout="restore_z(this);" class="mskjog"
                                     d="M229,83 A 44,44 0 0,1 273,83 L268,92 A 35,35 0 0 0 234,92 z" />
                                 <path class='sign' d="M251,58 L262,76 L240,76 z" />
@@ -340,16 +333,16 @@
                                     filter="url(#shadow)" />
                                 <path class="bg" d="M214,188 A 75,75 0 0,0 288,188 L268,152 A 36,36 0 0 1 234,152 z"
                                     opacity='0.7' filter="url(#light)" />
-                                <path onmouseup="alert(21);" onmouseover="settext_z('-10',this);"
+                                <path onmouseup="sendCommand('G0 Z-10',false);" onmouseover="settext_z('-10',this);"
                                     onmouseout="restore_z(this);" class="mskjog"
                                     d="M214,188 A 74,74 0 0,0 288,188 L268,152 A 35,35 0 0 1 234,152 z" />
-                                <path onmouseup="alert(22);" onmouseover="settext_z('-1',this);"
+                                <path onmouseup="sendCommand('G0 Z-1',false);" onmouseover="settext_z('-1',this);"
                                     onmouseout="restore_z(this);" class="mskjog"
                                     d="M219,179 A 64,64 0 0,0 283,179 L268,152 A 35,35 0 0 1 234,152 z" />
-                                <path onmouseup="alert(23);" onmouseover="settext_z('-0.1',this);"
+                                <path onmouseup="sendCommand('G0 Z-0.1',false);" onmouseover="settext_z('-0.1',this);"
                                     onmouseout="restore_z(this);" class="mskjog"
                                     d="M224,170 A 54,54 0 0,0 278,170 L268,152 A 35,35 0 0 1 234,152 z" />
-                                <path onmouseup="alert(24);" onmouseover="settext_z('-0.01',this);"
+                                <path onmouseup="sendCommand('G0 Z-0.01',false);" onmouseover="settext_z('-0.01',this);"
                                     onmouseout="restore_z(this);" class="mskjog"
                                     d="M229,161 A 44,44 0 0,0 273,161 L268,152 A 35,35 0 0 1 234,152 z" />
                                 <path class='sign' d="M251,186 L262,168 L240,168 z" />
@@ -360,16 +353,16 @@
                                     filter="url(#shadow)" />
                                 <path class="bg" d="M317,56 A 74,74 0 0,1 391,56 L371,92 A 35,35 0 0 0 337,92 z"
                                     opacity='0.7' filter="url(#light)" />
-                                <path onmouseup="alert(25);" onmouseover="settext_e('-100',this);"
+                                <path onmouseup="sendCommand('G0 E-100',false);" onmouseover="settext_e('-100',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M317,56 A 74,74 0 0,1 391,56 L371,92 A 35,35 0 0 0 337,92 z" />
-                                <path onmouseup="alert(26);" onmouseover="settext_e('-50',this);"
+                                <path onmouseup="sendCommand('G0 E-50',false);" onmouseover="settext_e('-50',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M322,65 A 64,64 0 0,1 385,65 L371,92 A 35,35 0 0 0 337,92 z" />
-                                <path onmouseup="alert(27);" onmouseover="settext_e('-10',this);"
+                                <path onmouseup="sendCommand('G0 E-10',false);" onmouseover="settext_e('-10',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M327,74 A 54,54 0 0,1 381,74 L371,92 A 35,35 0 0 0 337,92 z" />
-                                <path onmouseup="alert(28);" onmouseover="settext_e('-1',this);"
+                                <path onmouseup="sendCommand('G0 E-1',false);" onmouseover="settext_e('-1',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M332,83 A 44,44 0 0,1 376,83 L371,92 A 35,35 0 0 0 337,92 z" />
                                 <path class='sign' d="M354,58 L365,76 L343,76 z" />
@@ -393,16 +386,16 @@
                                     filter="url(#shadow)" />
                                 <path class="bg" d="M317,188 A 74,74 0 0,0 354,197 L354,156.5 A 35,35 0 0 1 337,152 z"
                                     opacity='0.7' filter="url(#light)" />
-                                <path onmouseup="alert(29);" onmouseover="settext_e('100',this);"
+                                <path onmouseup="sendCommand('G0 E100',false);" onmouseover="settext_e('100',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M317,188 A 74,74 0 0,0 354,197 L354,156.5 A 35,35 0 0 1 337,152 z" />
-                                <path onmouseup="alert(30);" onmouseover="settext_e('50',this);"
+                                <path onmouseup="sendCommand('G0 E50',false);" onmouseover="settext_e('50',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M322,179 A 64,64 0 0,0 354,187 L354,156.5 A 35,35 0 0 1 337,152 z" />
-                                <path onmouseup="alert(31);" onmouseover="settext_e('10',this);"
+                                <path onmouseup="sendCommand('G0 E10',false);" onmouseover="settext_e('10',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M327,170 A 54,54 0 0,0 354,177 L354,156.5 A 35,35 0 0 1 337,152 z" />
-                                <path onmouseup="alert(32);" onmouseover="settext_e('1',this);"
+                                <path onmouseup="sendCommand('G0 E1',false);" onmouseover="settext_e('1',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M332,161 A 44,44 0 0,0 354,167 L354,156.5 A 35,35 0 0 1 337,152 z" />
                                 <path class='sign' d="M337,171 L347,174 L339.5,182 z" />
@@ -413,16 +406,16 @@
                                     filter="url(#shadow)" />
                                 <path class="bg" d="M354,197 A 74,74 0 0,0 391,188 L371,152 A 35,35 0 0 1 354,156.5 z"
                                     opacity='0.7' filter="url(#light)" />
-                                <path onmouseup="alert(33);" onmouseover="settext_e('100',this);"
+                                <path onmouseup="sendCommand('G0 E100',false);;" onmouseover="settext_e('100',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M354,197 A 74,74 0 0,0 391,188 L371,152 A 35,35 0 0 1 354,156.5 z" />
-                                <path onmouseup="alert(34);" onmouseover="settext_e('50',this);"
+                                <path onmouseup="sendCommand('G0 E50',false);" onmouseover="settext_e('50',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M354,187 A 64,64 0 0,0 386,179 L371,152 A 35,35 0 0 1 354,156.5 z" />
-                                <path onmouseup="alert(35);" onmouseover="settext_e('10',this);"
+                                <path onmouseup="sendCommand('G0 E10',false);" onmouseover="settext_e('10',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M354,177 A 54,54 0 0,0 381,170 L371,152 A 35,35 0 0 1 354,156.5 z" />
-                                <path onmouseup="alert(36);" onmouseover="settext_e('1',this);"
+                                <path onmouseup="sendCommand('G0 E1',false);" onmouseover="settext_e('1',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M354,167 A 54,54 0 0,0 376,161 L371,152 A 35,35 0 0 1 354,156.5 z" />
                                 <path class='sign' d="M361,170 L372,167 L369.5,178 z" />
@@ -445,7 +438,7 @@
                                     opacity='0.7' filter="url(#light)" />
                             </g>
 
-                            <g id="button_M" transform="translate(56,220)" onmouseup="alert('Button M');"
+                            <g id="button_M" transform="translate(56,220)" onmouseup="sendCommand('M84',false);"
                                 onmouseover="changecolor(buttonM1,buttonM2,buttonM3,buttonM4,buttonM5,buttonM6,'#2F65FF');"
                                 onmouseout="changecolor(buttonM1,buttonM2,buttonM3,buttonM4,buttonM5,buttonM6,'#608B98');">
                                 <circle cx='17' cy='18' r='16' fill='#3498db' />
@@ -541,16 +534,13 @@
                         </g>
                     </svg>
                 </div>
-            </div>
-            <div id='commandArea'>
-                Manual Printer Command
-                <textarea readonly id="commandsText"></textarea>
-                <form id='commandForm'>
-                    <label for="icommand">Command</label>
+                <div id='commandArea'>
+                    <label>Manual Printer Command</label>
+                    <textarea readonly id="commandsText"></textarea>
+                    <label for="icommand" id="lcommand">Command</label>
                     <input type="text" id="icommand" name="icommand">
-                    <input id="cmdSendBtn" type="submit" class='button' value="Send">
-                </form>
-                <!-- <button onclick="reqStats()">ReqTasks</button> -->
+                    <button id="cmdSendBtn" onclick="sendCommand('', true);">Send</button>
+                </div>
             </div>
         </div>
     </div>
@@ -562,14 +552,14 @@
         const textArea = document.getElementById('commandsText');
         const cmdForm = document.getElementById('commandForm');
         const cmdText = document.getElementById('icommand');
+        cmdText.addEventListener("keyup", sendCommandOnEnter);
 
-        cmdForm.addEventListener("keyup", function (event) {
-            if (event.keyCode === 13) {
-                event.preventDefault();
-                document.getElementById("cmdSendBtn").click();
+        function sendCommandOnEnter(ev) {
+            if (ev.key === "Enter") {
+                ev.preventDefault();
+                sendCommand('', true);
             }
-        });
-        cmdForm.addEventListener('submit', sendCommand);
+        }
 
         const uploadForm = document.getElementById('uploadfrm');
         const inputFile = document.getElementById('inpfile');
@@ -668,7 +658,7 @@
                 let size = parseInt(array[i].size) / 1048576;
                 size = size.toFixed(2) + " MB";
 
-                tableBody += "<tr id='tr'>";
+                tableBody += "<tr id='filestr'>";
                 tableBody += "<td id='tdname'>" + array[i].filename + "</td>";
                 tableBody += "<td id='tdprint' onclick=\"requestPrint('" + array[i].filename + "')\">";
                 tableBody += "<svg width='1em' heigth='1em' viewbox='0 0 1300 1200'>";
@@ -688,9 +678,9 @@
                 xhr.onreadystatechange = function () {
                     if (this.readyState == 4 && this.status == 200) {
 
-                        h = document.getElementById('heText');
-                        h.style.display = 'block';
-                        sdFileDiv.style.display = 'none';
+                        // h = document.getElementById('heText');
+                        // h.style.display = 'block';
+                        // sdFileDiv.style.display = 'none';
                     }
                 }
                 xhr.open("GET", "/request?filename=" + name, true);
@@ -710,6 +700,7 @@
                 xhr.send();
             }
         }
+
         function reqStats() {
             var xhr = new XMLHttpRequest();
             xhr.onreadystatechange = function () {
@@ -722,38 +713,32 @@
             xhr.send();
         }
 
-        function sendCommand(ev) {
-            ev.preventDefault();
-            printerCmd = cmdText.value;
+        function sendCommand(cmd, i) {
+            // ev.preventDefault();
             var xhr = new XMLHttpRequest();
-            xhr.onreadystatechange = function () {
-                if (this.readyState == 4 && this.status != 200) {
-                    textArea.value += "Request Failed";
-                    textArea.value += '\n';
-                } else if (this.readyState == 4 && this.status == 200) {
-                    textArea.value += printerCmd;
-                    textArea.value += '\n';
+            if (i == true) {
+                printerCmd = cmdText.value;
+                xhr.onreadystatechange = function () {
+                    cmdStateChange(this);
                 }
+                cmdText.value = "";
             }
-            cmdText.value = "";
-            xhr.open("GET", "/request?gcodecmd=" + printerCmd, true);
-            xhr.send();
+            else { printerCmd = cmd; }
+            if (printerCmd != "") {
+                xhr.open("GET", "/request?gcodecmd=" + printerCmd, true);
+                xhr.send();
+            }
         }
 
-        function sendButtons(cmd) {
-            if (cmd != "") {
-                    var xhr = new XMLHttpRequest();
-                    xhr.onreadystatechange = function () {
-                        if (this.readyState == 4 && this.status != 200) {
-                            textArea.value += "Request Failed";
-                            textArea.value += '\n';
-                        } else if (this.readyState == 4 && this.status == 200) {
-                        }
-                    }
-                    xhr.open("GET", "/request?gcodecmd=" + cmd, true);
-                    xhr.send();
-                }
+        function cmdStateChange(ev) {
+            if (ev.readyState == 4 && ev.status != 200) {
+                textArea.value += "Request Failed";
+                textArea.value += '\n';
+            } else if (ev.readyState == 4 && ev.status == 200) {
+                textArea.value += printerCmd;
+                textArea.value += '\n';
             }
+        }
 
         function openPage(pageName, elmnt, color) {
             var i, tabcontent, tablinks;
@@ -943,12 +928,10 @@
         // Get the element with id="defaultOpen" and click on it
         document.getElementById("defaultOpen").click();
 
-        extruderlist.style.left = 580;
-        var rb = positionbar.getBoundingClientRect();
-        var re = extruderlist.getBoundingClientRect();
-        extruderlist.style.top = rb.top + (((rb.bottom - rb.top) - (re.bottom - re.top)) / 2);
-
-
+        // extruderlist.style.left = "960px";
+        // var rb = positionbar.getBoundingClientRect();
+        // var re = extruderlist.getBoundingClientRect();
+        // extruderlist.style.top = rb.top + (((rb.bottom - rb.top) - (re.bottom - re.top)) / 2) + 15 + "px";
 
         // initrange(rangefeedrate);
         // initthumb(thumbfeedrate);

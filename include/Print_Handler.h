@@ -136,9 +136,16 @@ public:
 
         _ackRcv = false;
     };
-    bool add(String& command)
+    bool add(String command)
     {
-        return _commands.push(command);
+        if (!isPrinting() && _printerConnected)
+        {
+            return _commands.push(command);
+        }
+        else
+        {
+            return false;
+        }
     }
     PrintState getState() { return _state; };
     bool isPrinting() { return (_state == PH_STATE_PRINT_REQ || _state == PH_STATE_PRINTING); }
@@ -152,6 +159,16 @@ public:
     void loopTx();
     void loopRx();
     bool send(String &command);
+
+
+    void printbuff()
+    {
+        while(!_commands.isEmpty())
+        {
+            _serial->print("CMD: ");
+            _serial->println(_commands.pop());
+        }
+    }
 };
 
 #endif

@@ -211,7 +211,6 @@ void setup(void)
         else if(request->hasArg("deletef"))
         {
             String fileName = request->arg("deletef");
-            Serial.println("deletef " + fileName);
             if (fsHandler.remove(fileName))
             {
                 code = 200;

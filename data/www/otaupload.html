@@ -13,14 +13,12 @@
         <form method='POST' name='uploadform' enctype='multipart/form-data' id='uploadfrm'>
             <input type='file' name='userfile' id='inpfile' onchange='sub(this)'>
             <div style="text-align: center;">
-                <label id='linpfile' for='inpfile'>Choose update file...</label>
+                <label id='fwlinpfile' for='inpfile'>Browse</label>
             </div>
             <div style="text-align: center;">
-                <br>
-                <input type='submit' class=uploadbtn value='Update'>
+                <input type='submit'  class='button' value='Update'>
             </div>
             <div id='prgtxt'></div>
-            <br>
             <div id='prgbar'>
                 <div id='iprgbar'> </div>
             </div>
@@ -32,7 +30,7 @@
         const inputFile = document.getElementById('inpfile');
         const progTxt = document.getElementById('prgtxt');
         const progBar = document.getElementById('iprgbar');
-        const lInputFile = document.getElementById('linpfile');
+        const lInputFile = document.getElementById('fwlinpfile');
 
         uploadForm.addEventListener('submit', submitFile);
 

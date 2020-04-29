@@ -254,20 +254,16 @@ void PrintHandler::processSerialRx()
 void PrintHandler::processSerialTx()
 {
     String printerCommand;
-
-    if (_ackRcv)
+    printerCommand = _commands.pop();
+    if (printerCommand != "")
     {
-        printerCommand = _commands.pop();
-        if (printerCommand != "")
+        write(printerCommand);
+        /* reset it only when the transmission is done? */
+        _ackRcv = false;
+        _prevCmd = PH_CMD_OTHER;
+        if (_aWs->availableForWriteAll())
         {
-            write(printerCommand);
-            /* reset it only when the transmission is done? */
-            _ackRcv = false;
-            _prevCmd = PH_CMD_OTHER;
-            if (_aWs->availableForWriteAll())
-            {
-                _aWs->textAll(printerCommand);
-            }
+            _aWs->textAll(printerCommand);
         }
     }
 }
@@ -315,8 +311,13 @@ void PrintHandler::loopTx()
             _state = PH_STATE_PRINT_REQ;
             _printRequested = false;
         }
+        else
+        {
+            processSerialTx();
+        }
         break;
     case PH_STATE_PRINT_REQ:
+        _commands.clear();
         _printStarted = true;
         _printCompleted = false;
         preBuffer();
@@ -329,6 +330,11 @@ void PrintHandler::loopTx()
         {
             parseFile();
             writeProgress(_estCompPrc);
+
+            if (_ackRcv)
+            {
+                processSerialTx();
+            }
         }
         else
         {
@@ -339,7 +345,6 @@ void PrintHandler::loopTx()
     default:
         break;
     }
-    processSerialTx();
 }
 
 void PrintHandler::loopRx()
