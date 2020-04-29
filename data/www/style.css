@@ -230,8 +230,24 @@ body {
     margin-top: 10px;
     width:90%;
     float: left;
-
 }
+
+#jogPanel{
+    float:left;
+}
+
+#userinput{
+    float: right;
+    width: 17%;
+}
+#userinput label{
+    padding: 5px;
+}
+#itemperature {
+    padding: 5px;
+    width:20%;
+}
+
 
 #icommand {
     width: 80%;
