@@ -40,6 +40,7 @@ private:
 
     size_t _fileSize;
     uint8_t _estCompPrc;
+    uint32_t _wstxTout;
     uint32_t _prgTout;
     uint32_t _commTout;
 
@@ -49,6 +50,7 @@ private:
     bool _printCanceled;
     bool _printStarted;
     bool _ackRcv;
+    bool _abortReq;
 
     uint8_t _extruderCnt;
     String _printerName;
@@ -57,10 +59,12 @@ private:
     String _bedTemp;
     String _extTempPreset[20];
     String _extTemp[20];
-    
+
+    String _serialReply;
+
     static const uint16_t BAUD_RATES_COUNT = 1;
-    const uint32_t BAUD_RATES[BAUD_RATES_COUNT] = {115200};
-    
+    const uint32_t BAUD_RATES[BAUD_RATES_COUNT] = {250000};
+
     // static const uint16_t BAUD_RATES_COUNT = 9;
     // const uint32_t BAUD_RATES[BAUD_RATES_COUNT] = {2400, 9600, 19200, 38400, 57600, 115200, 250000 , 500000, 1000000};
     static const char COMMENT_CHAR = ';';
@@ -68,6 +72,9 @@ private:
     static const uint32_t TOUT_PROGRESS = 5 * 1000;
     /* communicaiton timeout in 3s */
     static const uint32_t TOUT_COMM = 3 * 1000;
+    /* timeout for websocked transmission */
+    static const uint32_t TOUT_WSTX = 3 * 100;
+
     static const char M_COMMAND = 'M';
     static const char G_COMMAND = 'G';
     static const char T_COMMAND = 'T';
@@ -79,9 +86,9 @@ private:
     static const String OK_STR;
 
     void preBuffer();
-    void toLcd(String &text) 
-    { 
-        _commands.push("M117 " + text); 
+    void toLcd(String &text)
+    {
+        _commands.push("M117 " + text);
         _prevCmd = PH_CMD_M117;
     };
     void write(String &text)
@@ -91,28 +98,37 @@ private:
             _serial->println(text);
         }
     }
-    void sendM115() 
-    { 
-        String m115 = "M115"; 
-        send(m115);
-        _prevCmd = PH_CMD_M115;  
+    bool isTempReply(String &reply)
+    {
+        return ((reply.indexOf("T:") > -1) && (reply.indexOf("B:") > -1));
     }
-    void writeProgress(uint8_t prc) 
+    bool isMoveReply(String &reply)
+    {
+        return ((reply.indexOf("X:") > -1) && (reply.indexOf("Y:") > -1));
+    }
+    void sendM115()
+    {
+        String m115 = "M115";
+        send(m115);
+        _prevCmd = PH_CMD_M115;
+    }
+    void writeProgress(uint8_t prc)
     {
         if ((millis() >= _prgTout) && (_prevCmd != PH_CMD_M73))
         {
-            _commands.push("M73 P" + (String)prc);               
+            _commands.push("M73 P" + (String)prc);
             _prgTout = millis() + TOUT_PROGRESS;
             _prevCmd = PH_CMD_M73;
         }
     };
+
+    void updateWSState();
     void resetCommTimeout() { _commTout = millis() + TOUT_COMM; };
     void parseFile();
     String parseLine(String &line);
     void addCommand(String &command);
     void processSerialRx();
     void processSerialTx();
-    void decodePrinterMsg();
     void detectPrinter();
 
     bool parseTemp(const String &line);
@@ -124,17 +140,19 @@ public:
     PrintHandler(HardwareSerial *port)
     {
         _serial = port;
-        _state = PH_STATE_NC;
         _estCompPrc = 0;
         _prgTout = 0;
-
+        _wstxTout = 0;
+        
         _printCompleted = false;
         _printCanceled = false;
         _printStarted = false;
         _printerConnected = false;
         _printRequested = false;
-
+        _abortReq = false;
         _ackRcv = false;
+        
+        _state = PH_STATE_NC;
     };
     bool add(String command)
     {
@@ -147,7 +165,12 @@ public:
             return false;
         }
     }
-    PrintState getState() { return _state; };
+
+    void abortPrint()
+    {
+        _abortReq = true;
+    }
+
     bool isPrinting() { return (_state == PH_STATE_PRINT_REQ || _state == PH_STATE_PRINTING); }
     void startPrint(File &file)
     {
@@ -160,10 +183,37 @@ public:
     void loopRx();
     bool send(String &command);
 
+    String getState()
+    {
+        String stateStr;
+
+        switch (_state)
+        {
+        case PH_STATE_NC:
+            stateStr = "Not Connected";
+            break;
+        case PH_STATE_IDLE:
+        case PH_STATE_CONNECTED:
+            stateStr = "Connected";
+            break;
+        case PH_STATE_PRINT_REQ:
+        case PH_STATE_PRINTING:
+            stateStr = "Printing";
+            break;
+        case PH_STATE_ABORT_REQ:
+        case PH_STATE_CANCELED:
+            stateStr = "Print Cancelled";
+            break;
+        default:
+            stateStr = "Unknown";
+            break;
+        }
+        return stateStr;
+    };
 
     void printbuff()
     {
-        while(!_commands.isEmpty())
+        while (!_commands.isEmpty())
         {
             _serial->print("CMD: ");
             _serial->println(_commands.pop());

@@ -181,24 +181,45 @@ bool PrintHandler::parseM115(const String &line)
     return false;
 }
 
+void PrintHandler::updateWSState()
+{
+    String outStr;
+    if(millis() > _wstxTout)
+    {
+        outStr = "PS=" + getState();
+        outStr += "PG=" + (String)_estCompPrc;
+        outStr += "PR=" + _serialReply;
+                    
+        // transmit back what we received
+        if (_aWs->availableForWriteAll())
+        {
+            _aWs->textAll(outStr);
+        }
+        _serialReply = "";
+        _wstxTout = millis() + TOUT_WSTX;
+    }
+}
+
 void PrintHandler::processSerialRx()
 {
     static int startLine = 0;
-    static String serialBuff;
+    static String l_serialReply;
 
     while (_serial->available())
     {
         char c = (char)_serial->read();
-        serialBuff += c;
+        l_serialReply += c;
 
         if (c == '\n')
         {
             bool replyFound = true;
             if (PH_CMD_M115 == _prevCmd && _state == PH_STATE_NC)
             {
-                if (parseM115(serialBuff))
+                if (parseM115(l_serialReply))
                 {
+                    String conn = "ESP32 Connected: " + WiFi.localIP();
                     _state = PH_STATE_CONNECTED;
+                    toLcd(conn);
                     _printerConnected = true;
                 }
                 else
@@ -208,19 +229,20 @@ void PrintHandler::processSerialRx()
             }
             else
             {
-                if (serialBuff.startsWith(OK_STR, startLine))
+                if (l_serialReply.indexOf(OK_STR) > -1)
                 {
                     _ackRcv = true;
                 }
-                if (parseTemp(serialBuff))
+                else if (isMoveReply(l_serialReply) || isTempReply(l_serialReply))
                 {
+                    _ackRcv = true;
                     resetCommTimeout();
                 }
-                if (serialBuff.startsWith("echo:busy"))
+                else if (l_serialReply.startsWith("echo:busy"))
                 {
                     _ackRcv = false;
                 }
-                else if (serialBuff.startsWith("Error:"))
+                else if (l_serialReply.startsWith("Error:"))
                 {
                     _ackRcv = false;
                     _printCanceled = true;
@@ -228,19 +250,17 @@ void PrintHandler::processSerialRx()
                 else
                 {
                     replyFound = false;
-                }
+                }                
             }
 
-            int replyLen = serialBuff.length();
+            int replyLen = l_serialReply.length();
+            
             if (replyFound)
             {
-                // transmit back what we received
-                if (_aWs->availableForWriteAll())
-                {
-                    _aWs->textAll(serialBuff);
-                }
+
                 replyLen = 0;
-                serialBuff = "";            
+                _serialReply = l_serialReply;
+                l_serialReply = "";            
             }
             else
             {
@@ -261,10 +281,6 @@ void PrintHandler::processSerialTx()
         /* reset it only when the transmission is done? */
         _ackRcv = false;
         _prevCmd = PH_CMD_OTHER;
-        if (_aWs->availableForWriteAll())
-        {
-            _aWs->textAll(printerCommand);
-        }
     }
 }
 
@@ -289,8 +305,6 @@ void PrintHandler::parseFile()
     else
     {
         _file.close();
-        _printStarted = false;
-        _printCompleted = true;
     }
 }
 
@@ -320,28 +334,63 @@ void PrintHandler::loopTx()
         _commands.clear();
         _printStarted = true;
         _printCompleted = false;
-        preBuffer();
+        // preBuffer();
         _ackRcv = true;
         _state = PH_STATE_PRINTING;
         break;
 
     case PH_STATE_PRINTING:
-        if (!_printCompleted)
+        if(!_abortReq && !_printCanceled)
         {
             parseFile();
-            writeProgress(_estCompPrc);
-
-            if (_ackRcv)
-            {
-                processSerialTx();
+            if(_commands.isEmpty())
+            {                    
+                _printStarted = false;
+                _printCompleted = true;
             }
-        }
+            if (!_printCompleted)
+            {
+                // writeProgress(_estCompPrc);
+                if (_ackRcv)
+                {
+                    processSerialTx();
+                }
+            }
+            else
+            {
+                _state = PH_STATE_IDLE;
+            }
+        }        
         else
         {
-            _state = PH_STATE_IDLE;
+            _state = PH_STATE_ABORT_REQ;
         }
         break;
+    case PH_STATE_ABORT_REQ:
+    {        
+        String cancel = "Print aborted";
+        String command = "M0";
 
+        send(command);
+        command = "G1 Z10";
+        send(command);
+        toLcd(cancel);
+
+        _commands.clear();
+        _state = PH_STATE_CANCELED;
+    }
+    break;
+    case PH_STATE_CANCELED:
+    {
+        _printCanceled = false;
+        _abortReq = false;
+        _printCompleted = false;
+        _printStarted = false;
+        _printRequested = false;
+
+        _state = PH_STATE_IDLE;
+    }
+    break;
     default:
         break;
     }
@@ -350,4 +399,5 @@ void PrintHandler::loopTx()
 void PrintHandler::loopRx()
 {
     processSerialRx();
+    updateWSState();
 }

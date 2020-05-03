@@ -3,6 +3,7 @@
 String MsgQueue::pop()
 {
 	uint8_t next = 0;
+    String ret;
 
     /* buffer apperas empty */
     if (_head == _tail)
@@ -15,13 +16,13 @@ String MsgQueue::pop()
     {
         next = 0;
     }
-
+    
+    ret = _msgQueue[_tail];
     /* update the tail */
     _tail = next;
     _full = false;
-    
-    /* get the data */
-    return _msgQueue[_tail - 1];
+
+    return ret;
 }
 
 bool MsgQueue::push(const String& msg)

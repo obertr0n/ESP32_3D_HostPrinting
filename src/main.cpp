@@ -135,7 +135,7 @@ void setup(void)
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
         request->send(SPIFFS, "/www/index.html", "text/html");
     });
-
+    /* file upload */
     server.on("/", HTTP_POST, [&](AsyncWebServerRequest *request) {
             /* this will get called after the req is completed */
             request->send(SPIFFS, "/www/index.html", "text/html");
@@ -168,7 +168,7 @@ void setup(void)
             }
         }
     });
-
+    /* gcode commands */
     server.on("/request", HTTP_ANY, [](AsyncWebServerRequest *request) {
         int code = 403;
         String text;
@@ -227,7 +227,7 @@ void setup(void)
         }
         request->send(code, "text/plain", text);
     });
-    
+    /* delete a file */
     server.on("/del", HTTP_ANY, [](AsyncWebServerRequest *request) {
         int code = 403;
         String text;
@@ -248,20 +248,6 @@ void setup(void)
                 text = "File not found!";
             }
         }
-        else if (request->hasArg("gcodecmd"))
-        {
-            text = request->arg("gcodecmd");
-            if (printHandler.send(text))
-            {
-                code = 200;
-                text = "OK";
-            }
-            else
-            {
-                code = 403;
-                text = "Job not accepted";
-            }
-        }
         else
         {
             code = 403;
@@ -269,6 +255,7 @@ void setup(void)
         }
         request->send(code, "text/plain", text);
     });
+    /* list directories */
     server.on("/dirs", HTTP_GET, [](AsyncWebServerRequest *request) {
         if (printHandler.isPrinting())
         {
@@ -279,7 +266,7 @@ void setup(void)
             request->send(200, "text/plain", fsHandler.jsonifyDir(".gcode"));
         }
     });
-
+    /* freertos stats */
     server.on("/stats", HTTP_GET, [](AsyncWebServerRequest *request) {
         String result;
         TaskStatus_t *pxTaskStatusArray;
@@ -326,7 +313,18 @@ void setup(void)
         /* The array is no longer needed, free the memory it consumes. */
         vPortFree(pxTaskStatusArray);
     });   
-
+    /* abort a print job */
+    server.on("/abortPrint", HTTP_GET, [](AsyncWebServerRequest *request) {
+        if (!printHandler.isPrinting())
+        {
+            request->send(403, "text/plain", "Job not acccepted");
+        }
+        else
+        {
+            printHandler.abortPrint();
+            request->send(200, "text/plain", "Print job Cancelled!");
+        }
+    });
     /* start our async server */
     server.begin();
     
