@@ -1,5 +1,6 @@
 #include "Print_Handler.h"
 #include "HP_Config.h"
+#include "HP_Util.h"
 
 const String PrintHandler::FIRMWARE_NAME_STR = "FIRMWARE_NAME:";
 const String PrintHandler::EXTRUDER_CNT_STR = "EXTRUDER_COUNT:";
@@ -14,14 +15,15 @@ void PrintHandler::begin(AsyncWebSocket *ws)
 void PrintHandler::preBuffer()
 {
     String line;
-    uint32_t maxSlots = _commands.maxSize();
-
-    while ((_commands.freeSlots() > maxSlots / 2) && (_commands.freeSlots() > HP_CMD_SLOTS))
+    while (_commands.freeSlots() > HP_CMD_SLOTS)
     {
         if (_file.available() > 0)
         {
             line = _file.readStringUntil(LF_CHAR);
-            addCommand(line);
+            if(line.length() > 2)
+            {
+                appendLine(line);
+            }
         }
     }
 }
@@ -59,13 +61,55 @@ String PrintHandler::parseLine(String &line)
     return "";
 }
 
-inline void PrintHandler::addCommand(String &command)
+bool PrintHandler::parseFile()
 {
-    String pLine = parseLine(command);
+    String line;
+    size_t bytesAvail = 0;
 
-    if (pLine != "")
+    bytesAvail = _file.available();
+    if (bytesAvail > 0)
     {
-        _commands.push(pLine);
+        if (_commands.freeSlots() > HP_CMD_SLOTS)
+        {
+            line = _file.readStringUntil(LF_CHAR);
+            appendLine(line);
+
+            _estCompPrc = 100U - (bytesAvail * 100U / _fileSize);
+        }
+        return true;
+    }
+    else
+    {
+        _file.close();
+        return false;
+    }
+}
+
+inline void PrintHandler::appendLine(String &line)
+{
+    String saneLine;
+    bool validFound = false;
+    line.trim();
+    int commentIdx = line.indexOf(COMMENT_CHAR);
+    
+    if(commentIdx > -1)
+    {
+        saneLine = line.substring(0, commentIdx);
+        saneLine.trim();
+        if(saneLine.length()  > 2)
+        {
+            validFound = true;
+        }
+    }
+    else
+    {
+        saneLine = line;
+        validFound = true;
+    }
+
+    if(validFound)
+    {
+        _commands.push(saneLine);
     }
 }
 
@@ -84,6 +128,7 @@ void PrintHandler::detectPrinter()
     }
 }
 
+/* directly send a command to the printer */
 bool PrintHandler::send(String &command)
 {
     if (!isPrinting())
@@ -202,7 +247,6 @@ void PrintHandler::updateWSState()
 
 void PrintHandler::processSerialRx()
 {
-    static int startLine = 0;
     static String l_serialReply;
 
     while (_serial->available())
@@ -217,9 +261,9 @@ void PrintHandler::processSerialRx()
             {
                 if (parseM115(l_serialReply))
                 {
-                    String conn = "ESP32 Connected: " + WiFi.localIP();
                     _state = PH_STATE_CONNECTED;
-                    toLcd(conn);
+                    String ip = util_getIP();
+                    toLcd("Connect: " + ip);
                     _printerConnected = true;
                 }
                 else
@@ -251,20 +295,11 @@ void PrintHandler::processSerialRx()
                 {
                     replyFound = false;
                 }                
-            }
-
-            int replyLen = l_serialReply.length();
-            
+            }            
             if (replyFound)
             {
-
-                replyLen = 0;
                 _serialReply = l_serialReply;
-                l_serialReply = "";            
-            }
-            else
-            {
-                startLine = replyLen;
+                l_serialReply = "";
             }
         }
     }
@@ -281,30 +316,6 @@ void PrintHandler::processSerialTx()
         /* reset it only when the transmission is done? */
         _ackRcv = false;
         _prevCmd = PH_CMD_OTHER;
-    }
-}
-
-void PrintHandler::parseFile()
-{
-    String line;
-    size_t bytesAvail = 0;
-
-    bytesAvail = _file.available();
-    if (bytesAvail > 0)
-    {
-        if (_commands.freeSlots() > HP_CMD_SLOTS)
-        {
-            line = _file.readStringUntil(LF_CHAR);
-            // line.trim();
-            // line.replace("\r", "");
-            addCommand(line);
-
-            _estCompPrc = 100U - (bytesAvail * 100U / _fileSize);
-        }
-    }
-    else
-    {
-        _file.close();
     }
 }
 
@@ -334,17 +345,17 @@ void PrintHandler::loopTx()
         _commands.clear();
         _printStarted = true;
         _printCompleted = false;
-        // preBuffer();
+        preBuffer();
         _ackRcv = true;
         _state = PH_STATE_PRINTING;
         break;
 
     case PH_STATE_PRINTING:
         if(!_abortReq && !_printCanceled)
-        {
-            parseFile();
-            if(_commands.isEmpty())
-            {                    
+        {            
+            /* file still has data and the command buffer is empty */
+            if((parseFile() == false) && (_commands.isEmpty() == true))
+            {             
                 _printStarted = false;
                 _printCompleted = true;
             }
@@ -367,12 +378,11 @@ void PrintHandler::loopTx()
         }
         break;
     case PH_STATE_ABORT_REQ:
-    {        
+    {  
         String cancel = "Print aborted";
-        String command = "M0";
+        /* E0 OFF, Bed OFFF, Move Z10 mm up, WAIT FOR USER */
+        String command = "M104 S0 T0\nM140 S0\nG91\nG1 Z10\nM0";
 
-        send(command);
-        command = "G1 Z10";
         send(command);
         toLcd(cancel);
 

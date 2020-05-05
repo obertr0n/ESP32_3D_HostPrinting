@@ -63,6 +63,17 @@ void util_telnetSend(String line)
     }
 }
 
+String util_getIP()
+{
+    if(WL_CONNECTED == WiFi.status())
+    {
+        return WiFi.localIP().toString();
+    }
+    else
+    {
+        return "";
+    }
+}
 void util_blink_status()
 {
     // digitalWrite(PIN_CAM_FLASH, HIGH);

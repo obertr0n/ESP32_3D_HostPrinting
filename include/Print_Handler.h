@@ -124,9 +124,9 @@ private:
 
     void updateWSState();
     void resetCommTimeout() { _commTout = millis() + TOUT_COMM; };
-    void parseFile();
+    bool parseFile();
     String parseLine(String &line);
-    void addCommand(String &command);
+    void appendLine(String &line);
     void processSerialRx();
     void processSerialTx();
     void detectPrinter();
@@ -154,11 +154,16 @@ public:
         
         _state = PH_STATE_NC;
     };
-    bool add(String command)
+    bool appendCommand(String command, bool isMaster=false)
     {
-        if (!isPrinting() && _printerConnected)
+        /* only add a command if printer is connected */
+        if (_printerConnected)
         {
-            return _commands.push(command);
+            /* special case where a master command is requested */
+            if(!isPrinting() || isMaster)
+            {
+                return _commands.push(command);
+            }
         }
         else
         {

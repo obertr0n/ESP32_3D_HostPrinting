@@ -12,13 +12,14 @@ body {
     overflow: hidden;
 }
 
-.abortbtn {
+#abortbtn {
     height: 30px;
     font-size: 17px;
     float: right;
     border: none;
     outline: none;
     background-color: red;
+    display: none;
 }
 
 #printprogress{

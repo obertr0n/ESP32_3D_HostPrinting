@@ -4,8 +4,8 @@
 <html>
 
 <head>
-    <!-- <link rel="stylesheet" type="text/css" href="/www/style.css"> -->
-    <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" type="text/css" href="/www/style.css">
+    <!-- <link rel="stylesheet" type="text/css" href="style.css"> -->
     <title>ESP32 HostPrint</title>
 </head>
 
@@ -13,9 +13,9 @@
     <div id="container">
         <div id="pstatus" style="text-align: center;">
             <label id="lprintersts">Not Connected</label>
-            <button class="abortbtn" onclick="abortPrint()">Abort Print</button>
+            <button id="abortbtn" onclick="abortPrint()">Abort Print</button>
             <div id="printprogress">
-                <label id="lprintprg" for="prinprg">Printing: 100%</label>
+                <label id="lprintprg" for="prinprg"></label>
                 <progress id="prinprg" value="0" max="100"></progress>
             </div>
         </div>
@@ -26,7 +26,7 @@
             <button class="tablink" onclick="openPage('abouttab', this, 'orange')">About</button>
         </div>
         <div id="filestab" class="tabcontent">
-            <div id="ftable">
+            <div id="ftable" class="lockonprint">
                 <div id="fileup">
                     <form class='form' enctype='multipart/form-data' id='uploadfrm' name='uploadform' method='POST'>
                         <input type='file' name='userfile' id='inpfile' onchange='sub(this)' />
@@ -64,7 +64,7 @@
         </div>
         <div id="controltab" class="tabcontent">
             <div id="printerctrl">
-                <div id="jogPanel">
+                <div id="jogPanel" class="lockonprint">
                     <svg viewbox="0 0 410 230">
                         <defs>
                             <filter id="light">
@@ -105,7 +105,7 @@
                             </filter>
                         </defs>
                         <g id="Jog" transform="translate(0,-30)">
-                            <g id="homeall" transform="translate(10,175)" onclick="sendCommand('G28',false);"
+                            <g id="homeall" transform="translate(10,175)" onclick="Command_Send('G28%0AM114',false);"
                                 onmouseover="changecolor(ha1,ha2,ha3,ha4,'#2F65FF');"
                                 onmouseout="changecolor(ha1,ha2,ha3,ha4,'#608B98');">
                                 <circle cx='17' cy='17' r='18' fill='#FFF' />
@@ -121,7 +121,7 @@
                                     filter="url(#shadow)" opacity='0.7' filter="url(#light)" />
                             </g>
 
-                            <g id="homex" transform="translate(10,35)" onclick="sendCommand('G28 X',false);"
+                            <g id="homex" transform="translate(10,35)" onclick="Command_Send('G28 X%0AM114',false);"
                                 onmouseover="changecolor(hx1,hx2,hx3,hx4,'#2F65FF');"
                                 onmouseout="changecolor(hx1,hx2,hx3,hx4,'#608B98');">
                                 <circle cx='17' cy='17' r='18' fill='#FFF' />
@@ -138,7 +138,7 @@
                                 <text x="17" y="26" class="home">X</text>
                             </g>
 
-                            <g id="homey" transform="translate(159,35)" onclick="sendCommand('G28 Y',false);"
+                            <g id="homey" transform="translate(159,35)" onclick="Command_Send('G28 Y%0AM114',false);"
                                 onmouseover="changecolor(hy1,hy2,hy3,hy4,'#2F65FF');"
                                 onmouseout="changecolor(hy1,hy2,hy3,hy4,'#608B98');">
                                 <circle cx='17' cy='17' r='18' fill='#FFF' />
@@ -155,7 +155,7 @@
                                 <text x="17" y="26" class="home">Y</text>
                             </g>
 
-                            <g id="homez" transform="translate(159,175)" onclick="sendCommand('G28 Z',false);"
+                            <g id="homez" transform="translate(159,175)" onclick="Command_Send('G28 Z%0AM114',false);"
                                 onmouseover="changecolor(hz1,hz2,hz3,hz4,'#2F65FF');"
                                 onmouseout="changecolor(hz1,hz2,hz3,hz4,'#608B98');">
                                 <circle cx='17' cy='17' r='18' fill='#FFF' />
@@ -177,16 +177,16 @@
                                     filter="url(#shadow)" />
                                 <path class="bg" d="M48,70 A 74,74 0 0,1 154,70 L126,98 A 35,35 0 0 0 76,98 z"
                                     opacity='0.7' filter="url(#light)" />
-                                <path onclick="relMvCmd('Y','-50');" onmouseover="settext_x('-50',this);"
+                                <path onclick="relMvCmd('Y-50');" onmouseover="settext_x('-50',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M48,70 A 74,74 0 0,1 154,70 L126,98 A 35,35 0 0 0 76,98 z" />
-                                <path onclick="relMvCmd('Y','-10');" onmouseover="settext_x('-10',this);"
+                                <path onclick="relMvCmd('Y-10');" onmouseover="settext_x('-10',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M55,77 A 64,64 0 0,1 147,77 L126,98 A 35,35 0 0 0 76,98 z" />
-                                <path onclick="relMvCmd('Y','-1');" onmouseover="settext_x('-1',this);"
+                                <path onclick="relMvCmd('Y-1');" onmouseover="settext_x('-1',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M62,84 A 54,54 0 0,1 140,84 L126,98 A 35,35 0 0 0 76,98 z" />
-                                <path onclick="relMvCmd('Y','-0.1');" onmouseover="settext_x('-0.1',this);"
+                                <path onclick="relMvCmd('Y-0.1');" onmouseover="settext_x('-0.1',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M69,91 A 44,44 0 0,1 133,91 L126,98 A 35,35 0 0 0 76,98 z" />
                                 <path class='sign' d="M101,58 L112,76 L90,76 z" />
@@ -197,16 +197,16 @@
                                     filter="url(#shadow)" />
                                 <path class="bg" d="M154,70 A 74,74 0 0,1 154,174 L126,146 A 35,35 0 0 0 126,98 z"
                                     opacity=0.7 filter="url(#light)" />
-                                <path onclick="relMvCmd('X','50');" onmouseover="settext_x('50',this);"
+                                <path onclick="relMvCmd('X50');" onmouseover="settext_x('50',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M154,70 A 74,74 0 0,1 154,174 L126,146 A 35,35 0 0 0 126,98 z" />
-                                <path onclick="relMvCmd('X','10');" onmouseover="settext_x('10',this);"
+                                <path onclick="relMvCmd('X10');" onmouseover="settext_x('10',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M147,77 A 64,64 0 0,1 147,167 L126,146 A 35,35 0 0 0 126,98 z" />
-                                <path onclick="relMvCmd('X','1');" onmouseover="settext_x('1',this);"
+                                <path onclick="relMvCmd('X1');" onmouseover="settext_x('1',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M140,84 A 54,54 0 0,1 140,160 L126,146 A 35,35 0 0 0 126,98 z" />
-                                <path onclick="relMvCmd('X','0.1');" onmouseover="settext_x('0.1',this);"
+                                <path onclick="relMvCmd('X0.1');" onmouseover="settext_x('0.1',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M133,91 A 44,44 0 0,1 133,153 L126,146 A 35,35 0 0 0 126,98 z" />
                                 <path class='sign' d="M165,122 L148,112 L148,132 z" />
@@ -217,16 +217,16 @@
                                     filter="url(#shadow)" />
                                 <path class="bg" d="M48,174 A 74,74 0 0,0 154,174 L126,146 A 35,35 0 0 1 76,146 z"
                                     opacity='0.7' filter="url(#light)" />
-                                <path onclick="relMvCmd('Y','50');" onmouseover="settext_x('50',this);"
+                                <path onclick="relMvCmd('Y50');" onmouseover="settext_x('50',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M48,174 A 74,74 0 0,0 154,174 L126,146 A 35,35 0 0 1 76,146 z" />
-                                <path onclick="relMvCmd('Y','10');" onmouseover="settext_x('10',this);"
+                                <path onclick="relMvCmd('Y10');" onmouseover="settext_x('10',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M55,167 A 64,64 0 0,0 147,167 L126,146 A 35,35 0 0 1 76,146 z" />
-                                <path onclick="relMvCmd('Y','1');" onmouseover="settext_x('1',this);"
+                                <path onclick="relMvCmd('Y1');" onmouseover="settext_x('1',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M62,160 A 54,54 0 0,0 140,160 L126,146 A 35,35 0 0 1 76,146 z" />
-                                <path onclick="relMvCmd('Y','0.1');" onmouseover="settext_x('0.1',this);"
+                                <path onclick="relMvCmd('Y0.1');" onmouseover="settext_x('0.1',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M69,153 A 44,44 0 0,0 133,153 L126,146 A 35,35 0 0 1 76,146 z" />
                                 <path class='sign' d="M101,186 L112,168 L90,168 z" />
@@ -236,16 +236,16 @@
                                 <path class="bg" d="M48,174 A 74,74 0 0,1 48,70 L76,98 A 35,35 0 0 0 76,146 z" />
                                 <path class="bg" d="M48,174 A 74,74 0 0,1 48,70 L76,98 A 35,35 0 0 0 76,146 z"
                                     opacity='0.7' filter="url(#light)" />
-                                <path onclick="relMvCmd('X','-50');" onmouseover="settext_x('-50',this);"
+                                <path onclick="relMvCmd('X-50');" onmouseover="settext_x('-50',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M48,174 A 74,74 0 0,1 48,70 L76,98 A 35,35 0 0 0 76,146 z" />
-                                <path onclick="relMvCmd('X','-10');" onmouseover="settext_x('-10',this);"
+                                <path onclick="relMvCmd('X-10');" onmouseover="settext_x('-10',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M55,167 A 64,64 0 0,1 55,77 L76,98 A 35,35 0 0 0 76,146 z" />
-                                <path onclick="relMvCmd('X','-1');" onmouseover="settext_x('-1',this);"
+                                <path onclick="relMvCmd('X-1');" onmouseover="settext_x('-1',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M62,160 A 54,54 0 0,1 62,84 L76,98 A 35,35 0 0 0 76,146 z" />
-                                <path onclick="relMvCmd('X-','0.1');" onmouseover="settext_x('-0.1',this);"
+                                <path onclick="relMvCmd('X-0.1');" onmouseover="settext_x('-0.1',this);"
                                     onmouseout="restore_x(this);" class="mskjog"
                                     d="M69,153 A 44,44 0 0,1 69,91 L76,98 A 35,35 0 0 0 76,146 z" />
                                 <path class='sign' d="M37,122 L54,112 L54,132 z" />
@@ -262,16 +262,16 @@
                                     filter="url(#shadow)" />
                                 <path class="bg" d="M214,56 A 74,74 0 0,1 288,56 L268,92 A 35,35 0 0 0 234,92 z"
                                     opacity='0.7' filter="url(#light)" />
-                                <path onclick="relMvCmd('Z','10');" onmouseover="settext_z('10',this);"
+                                <path onclick="relMvCmd('Z10');" onmouseover="settext_z('10',this);"
                                     onmouseout="restore_z(this);" class="mskjog"
                                     d="M214,56 A 74,74 0 0,1 288,56 L268,92 A 35,35 0 0 0 234,92 z" />
-                                <path onclick="relMvCmd('Z','1');" onmouseover="settext_z('1',this);"
+                                <path onclick="relMvCmd('Z1');" onmouseover="settext_z('1',this);"
                                     onmouseout="restore_z(this);" class="mskjog"
                                     d="M219,65 A 64,64 0 0,1 283,65 L268,92 A 35,35 0 0 0 234,92 z" />
-                                <path onclick="relMvCmd('Z','0.1');" onmouseover="settext_z('0.1',this);"
+                                <path onclick="relMvCmd('Z0.1');" onmouseover="settext_z('0.1',this);"
                                     onmouseout="restore_z(this);" class="mskjog"
                                     d="M224,74 A 54,54 0 0,1 278,74 L268,92 A 35,35 0 0 0 234,92 z" />
-                                <path onclick="relMvCmd('Z','0.01');" onmouseover="settext_z('0.01',this);"
+                                <path onclick="relMvCmd('Z0.01');" onmouseover="settext_z('0.01',this);"
                                     onmouseout="restore_z(this);" class="mskjog"
                                     d="M229,83 A 44,44 0 0,1 273,83 L268,92 A 35,35 0 0 0 234,92 z" />
                                 <path class='sign' d="M251,58 L262,76 L240,76 z" />
@@ -288,16 +288,16 @@
                                     filter="url(#shadow)" />
                                 <path class="bg" d="M214,188 A 75,75 0 0,0 288,188 L268,152 A 36,36 0 0 1 234,152 z"
                                     opacity='0.7' filter="url(#light)" />
-                                <path onclick="relMvCmd('Z','-10');" onmouseover="settext_z('-10',this);"
+                                <path onclick="relMvCmd('Z-10');" onmouseover="settext_z('-10',this);"
                                     onmouseout="restore_z(this);" class="mskjog"
                                     d="M214,188 A 74,74 0 0,0 288,188 L268,152 A 35,35 0 0 1 234,152 z" />
-                                <path onclick="relMvCmd('Z','-1');" onmouseover="settext_z('-1',this);"
+                                <path onclick="relMvCmd('Z-1');" onmouseover="settext_z('-1',this);"
                                     onmouseout="restore_z(this);" class="mskjog"
                                     d="M219,179 A 64,64 0 0,0 283,179 L268,152 A 35,35 0 0 1 234,152 z" />
-                                <path onclick="relMvCmd('Z','-0.1');" onmouseover="settext_z('-0.1',this);"
+                                <path onclick="relMvCmd('Z-0.1');" onmouseover="settext_z('-0.1',this);"
                                     onmouseout="restore_z(this);" class="mskjog"
                                     d="M224,170 A 54,54 0 0,0 278,170 L268,152 A 35,35 0 0 1 234,152 z" />
-                                <path onclick="relMvCmd('Z','-0.01');" onmouseover="settext_z('-0.01',this);"
+                                <path onclick="relMvCmd('Z-0.01');" onmouseover="settext_z('-0.01',this);"
                                     onmouseout="restore_z(this);" class="mskjog"
                                     d="M229,161 A 44,44 0 0,0 273,161 L268,152 A 35,35 0 0 1 234,152 z" />
                                 <path class='sign' d="M251,186 L262,168 L240,168 z" />
@@ -308,16 +308,16 @@
                                     filter="url(#shadow)" />
                                 <path class="bg" d="M317,56 A 74,74 0 0,1 391,56 L371,92 A 35,35 0 0 0 337,92 z"
                                     opacity='0.7' filter="url(#light)" />
-                                <path onclick="relMvCmd('E','-100');" onmouseover="settext_e('-100',this);"
+                                <path onclick="relMvCmd('E-100');" onmouseover="settext_e('-100',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M317,56 A 74,74 0 0,1 391,56 L371,92 A 35,35 0 0 0 337,92 z" />
-                                <path onclick="relMvCmd('E','-50');" onmouseover="settext_e('-50',this);"
+                                <path onclick="relMvCmd('E-50');" onmouseover="settext_e('-50',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M322,65 A 64,64 0 0,1 385,65 L371,92 A 35,35 0 0 0 337,92 z" />
-                                <path onclick="relMvCmd('E','-10');" onmouseover="settext_e('-10',this);"
+                                <path onclick="relMvCmd('E-10');" onmouseover="settext_e('-10',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M327,74 A 54,54 0 0,1 381,74 L371,92 A 35,35 0 0 0 337,92 z" />
-                                <path onclick="relMvCmd('E','-1');" onmouseover="settext_e('-1',this);"
+                                <path onclick="relMvCmd('E-1');" onmouseover="settext_e('-1',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M332,83 A 44,44 0 0,1 376,83 L371,92 A 35,35 0 0 0 337,92 z" />
                                 <path class='sign' d="M354,58 L365,76 L343,76 z" />
@@ -341,16 +341,16 @@
                                     filter="url(#shadow)" />
                                 <path class="bg" d="M317,188 A 74,74 0 0,0 354,197 L354,156.5 A 35,35 0 0 1 337,152 z"
                                     opacity='0.7' filter="url(#light)" />
-                                <path onclick="relMvCmd('E','100');" onmouseover="settext_e('100',this);"
+                                <path onclick="relMvCmd('E100');" onmouseover="settext_e('100',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M317,188 A 74,74 0 0,0 354,197 L354,156.5 A 35,35 0 0 1 337,152 z" />
-                                <path onclick="relMvCmd('E','50');" onmouseover="settext_e('50',this);"
+                                <path onclick="relMvCmd('E50');" onmouseover="settext_e('50',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M322,179 A 64,64 0 0,0 354,187 L354,156.5 A 35,35 0 0 1 337,152 z" />
-                                <path onclick="relMvCmd('E','10');" onmouseover="settext_e('10',this);"
+                                <path onclick="relMvCmd('E10');" onmouseover="settext_e('10',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M327,170 A 54,54 0 0,0 354,177 L354,156.5 A 35,35 0 0 1 337,152 z" />
-                                <path onclick="relMvCmd('E','1');" onmouseover="settext_e('1',this);"
+                                <path onclick="relMvCmd('E1');" onmouseover="settext_e('1',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M332,161 A 44,44 0 0,0 354,167 L354,156.5 A 35,35 0 0 1 337,152 z" />
                                 <path class='sign' d="M337,171 L347,174 L339.5,182 z" />
@@ -361,16 +361,16 @@
                                     filter="url(#shadow)" />
                                 <path class="bg" d="M354,197 A 74,74 0 0,0 391,188 L371,152 A 35,35 0 0 1 354,156.5 z"
                                     opacity='0.7' filter="url(#light)" />
-                                <path onclick="relMvCmd('E','100');;" onmouseover="settext_e('100',this);"
+                                <path onclick="relMvCmd('E100');;" onmouseover="settext_e('100',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M354,197 A 74,74 0 0,0 391,188 L371,152 A 35,35 0 0 1 354,156.5 z" />
-                                <path onclick="relMvCmd('E','50');" onmouseover="settext_e('50',this);"
+                                <path onclick="relMvCmd('E50');" onmouseover="settext_e('50',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M354,187 A 64,64 0 0,0 386,179 L371,152 A 35,35 0 0 1 354,156.5 z" />
-                                <path onclick="relMvCmd('E','10');" onmouseover="settext_e('10',this);"
+                                <path onclick="relMvCmd('E10');" onmouseover="settext_e('10',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M354,177 A 54,54 0 0,0 381,170 L371,152 A 35,35 0 0 1 354,156.5 z" />
-                                <path onclick="relMvCmd('E','1');" onmouseover="settext_e('1',this);"
+                                <path onclick="relMvCmd('E1');" onmouseover="settext_e('1',this);"
                                     onmouseout="restore_e(this);" class="mskjog"
                                     d="M354,167 A 54,54 0 0,0 376,161 L371,152 A 35,35 0 0 1 354,156.5 z" />
                                 <path class='sign' d="M361,170 L372,167 L369.5,178 z" />
@@ -393,7 +393,7 @@
                                     opacity='0.7' filter="url(#light)" />
                             </g>
 
-                            <g id="button_M" transform="translate(56,220)" onclick="sendCommand('M84',false);"
+                            <g id="button_M" transform="translate(56,220)" onclick="Command_Send('M84',false);"
                                 onmouseover="changecolor(buttonM1,buttonM2,buttonM3,buttonM4,buttonM5,buttonM6,'#2F65FF');"
                                 onmouseout="changecolor(buttonM1,buttonM2,buttonM3,buttonM4,buttonM5,buttonM6,'#608B98');">
                                 <circle cx='17' cy='18' r='16' fill='#FFF' />
@@ -509,9 +509,11 @@
                                     <svg width="20" height="20">
                                         <g id="ext1">
                                             <rect x="0" y="0" width="24" height="24" fill="#FFF"></rect>
-                                            <path id="e11" d="M1,0 L8,0 L8,15 L4.5,21 L1,15 z" style="fill: rgb(0, 0, 0);">
+                                            <path id="e11" d="M1,0 L8,0 L8,15 L4.5,21 L1,15 z"
+                                                style="fill: rgb(0, 0, 0);">
                                             </path>
-                                            <text id="e12" x="10" y="15.5" class="slide" style="fill: rgb(0, 0, 0);">1</text>
+                                            <text id="e12" x="10" y="15.5" class="slide"
+                                                style="fill: rgb(0, 0, 0);">1</text>
                                         </g>
                                     </svg>
                                 </td>
@@ -522,12 +524,12 @@
                                             <rect x="0" y="0" width="24" height="24" fill="#FFF"></rect>
                                             <polygon id="b1" points="5,0 24,0 28,19 1,19" fill="none" stroke="#000000"
                                                 stroke-width="2" style="stroke: rgb(0, 0, 0);"></polygon>
-                                            <line id="b2" x1="11" y1="0" x2="10" y2="19" stroke="#000000" stroke-width="2"
-                                                style="stroke: rgb(0, 0, 0);"></line>
-                                            <line id="b3" x1="18" y1="0" x2="19" y2="19" stroke="#000000" stroke-width="2"
-                                                style="stroke: rgb(0, 0, 0);"></line>
-                                            <line id="b4" x1="3" y1="13" x2="26" y2="13" stroke="#000000" stroke-width="2"
-                                                style="stroke: rgb(0, 0, 0);"></line>
+                                            <line id="b2" x1="11" y1="0" x2="10" y2="19" stroke="#000000"
+                                                stroke-width="2" style="stroke: rgb(0, 0, 0);"></line>
+                                            <line id="b3" x1="18" y1="0" x2="19" y2="19" stroke="#000000"
+                                                stroke-width="2" style="stroke: rgb(0, 0, 0);"></line>
+                                            <line id="b4" x1="3" y1="13" x2="26" y2="13" stroke="#000000"
+                                                stroke-width="2" style="stroke: rgb(0, 0, 0);"></line>
                                             <line id="b5" x1="4" y1="6" x2="25" y2="6" stroke="#000000" stroke-width="2"
                                                 style="stroke: rgb(0, 0, 0);">
                                             </line>
@@ -544,41 +546,46 @@
                         <tbody>
                             <tr id="truserinp">
                                 <td id="tddesc"><label>E0 Temp:[&#8451;]</label></td>
-                                <td><input class='iucmd' type="number" id="iextrtemp" min="0" max="320" value="190" onkeyup="sendOnEnter(ev, 'e0')"></td>
+                                <td><input class='iucmd' type="number" id="iextrtemp" min="0" max="320" value="190"
+                                        onkeyup="sendOnEnter(event,'e0')"></td>
                                 <td><button onclick="sendVariantCmd('e0')">S</button></td>
                                 <td><button onclick="sendVariantCmd('e0Off')">O</button></td>
                             </tr>
                             <tr id="truserinp">
                                 <td id="tddesc"><label>Bed Temp:[&#8451;]</label></td>
-                                <td><input class='iucmd' type="number" name="" id="ibedtemp" min="0" max="130" value="50"  onkeyup="sendOnEnter(ev, 'bed')"></td>
+                                <td><input class='iucmd' type="number" name="" id="ibedtemp" min="0" max="130"
+                                        value="50" onkeyup="sendOnEnter(event, 'bed')"></td>
                                 <td><button onclick="sendVariantCmd('bed')">S</button></td>
                                 <td><button onclick="sendVariantCmd('bedOff')">O</button></td>
                             </tr>
                             <tr id="truserinp">
                                 <td id="tddesc"><label>Fan Speed[%]:</label></td>
-                                <td><input class='iucmd' type="number" name="" id="ifan0" min="0" max="100" value="100"  onkeyup="sendOnEnter(ev, 'fan')"></td>
+                                <td><input class='iucmd' type="number" name="" id="ifan0" min="0" max="100" value="100"
+                                        onkeyup="sendOnEnter(event, 'fan')"></td>
                                 <td><button onclick="sendVariantCmd('fan')">S</button></td>
                                 <td><button onclick="sendVariantCmd('fanOff')">O</button></td>
                             </tr>
                             <tr id="truserinp">
                                 <td id="tddesc"><label>Feed Rate[%]:</label></td>
-                                <td><input class='iucmd' type="number" name="" id="ifeedrate" min="10" max="300" value="100" onkeyup="sendOnEnter(ev, 'feedr')"></td>
+                                <td><input class='iucmd' type="number" name="" id="ifeedrate" min="10" max="300"
+                                        value="100" onkeyup="sendOnEnter(event, 'feedr')"></td>
                                 <td><button onclick="sendVariantCmd('feedr')">S</button></td>
                             </tr>
                             <tr id="truserinp">
                                 <td id="tddesc"><label>E0 Flow Rate[%]:</label></td>
-                                <td><input class='iucmd' type="number" name="" id="iflowrate" min="10" max="300" value="100" onkeyup="sendOnEnter(ev, 'flowr')"></td>
+                                <td><input class='iucmd' type="number" name="" id="iflowrate" min="10" max="300"
+                                        value="100" onkeyup="sendOnEnter(event, 'flowr')"></td>
                                 <td><button onclick="sendVariantCmd('flowr')">S</button></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                <div id='cmdarea'>
+                <div id='cmdarea' class="lockonprint">
                     <label>Manual Printer Command</label>
                     <textarea readonly id="cmdtext"></textarea>
                     <label for="icommand" id="lcommand">Command</label>
-                    <input type="text" id="icommand" name="icommand">
-                    <button id="cmdSendBtn" onclick="sendCommand('', true);">Send</button>
+                    <input type="text" id="icommand" name="icommand" onkeyup="Command_OnEnter(event)">
+                    <button id="cmdSendBtn" onclick="Command_Send('', true);">Send</button>
                 </div>
             </div>
         </div>
@@ -596,7 +603,6 @@
 
         const textArea = document.getElementById('cmdtext');
         const cmdText = document.getElementById('icommand');
-        cmdText.addEventListener("keyup", sendCommandOnEnter);
 
         const uploadForm = document.getElementById('uploadfrm');
         const inputFile = document.getElementById('inpfile');
@@ -618,7 +624,7 @@
         const tdBedTemp = document.getElementById('tdbedtemp');
 
         const tdXPos = document.getElementById('posx');
-        const tdYPos = document.getElementById('posy'); 
+        const tdYPos = document.getElementById('posy');
         const tdZPos = document.getElementById('posz');
 
         const lStateInf = document.getElementById('lprintersts');
@@ -627,21 +633,27 @@
 
         uploadForm.addEventListener('submit', uploadFile);
 
-        document.addEventListener('DOMContentLoaded', function() {
-            initws(); 
+        document.addEventListener('DOMContentLoaded', function () {
+            initws();
             getDirs();
         }, false);
-
-        function sendCommandOnEnter(ev) {
+        window.onbeforeunload = function() {
+            websock.onclose = function () {}; // disable onclose handler first
+            websock.close();
+        };
+        function Command_OnEnter(ev) {
             if (ev.key === "Enter") {
                 ev.preventDefault();
-                sendCommand('', true);
+                Command_Send('', true);
             }
         }
 
         function initws() {
             textArea.value = "";
             websock = new WebSocket('ws://' + window.location.hostname + '/ws');
+            websock.onerror = function (evt) {
+                alert("WS Fail" + evt);
+            }
             websock.onmessage = function (evt) {
                 processWs(evt)
             };
@@ -658,6 +670,7 @@
 
         /* PS=PrintingPG=10PR=X:154.78 Y:115.00 Z:16.02 E:0.00 Count X:12382 Y:9200 Z:6407 */
         function processWs(ev) {
+            var divs = document.getElementsByClassName('lockonprint');
             wsdata = ev.data;
 
             var prntState;
@@ -668,13 +681,13 @@
             if (psIdx > -1) {
                 psIdx += 3;
                 var pgIdx = wsdata.indexOf('PG=', psIdx);
-                
-                if(pgIdx > -1) {
+
+                if (pgIdx > -1) {
                     prntState = wsdata.substring(psIdx, pgIdx).trim();
                     pgIdx += 3
                     var prIdx = wsdata.indexOf('PR=', pgIdx);
-                    
-                    if(prIdx > -1) {
+
+                    if (prIdx > -1) {
                         prntPerc = wsdata.substring(pgIdx, prIdx);
                         prIdx += 3;
                         serialReply = wsdata.substring(prIdx);
@@ -683,28 +696,42 @@
             }
 
             lStateInf.innerText = prntState;
-            if((prntState == 'Not Connected') || (prntState == 'Print Cancelled')) {
+
+            if ((prntState == 'Not Connected') || (prntState == 'Print Cancelled')) {
                 lStateInf.style.color = "red";
             }
             else {
                 lStateInf.style.color = "green"
             }
 
-            if(prntState == 'Printing') {
+            if (prntState == 'Printing') {
+                for (i = 0; i < divs.length; i++) {
+                    divs[i].style.pointerEvents = "none";
+                }
 
                 var progdiv = document.getElementById('printprogress');
                 progdiv.style.display = 'block';
+                document.getElementById("abortbtn").style.display = "block";
+                lPrintPrg.style.display = "block";
+                document.getElementById('printprogress').style.display = "block";
                 lPrintPrg.innerText = 'Printing: ' + prntPerc + '%';
                 pbPrint.value = prntPerc;
             }
+            else {
+                for (i = 0; i < divs.length; i++) {
+                    divs[i].style.pointerEvents = "all";
+                }
+                document.getElementById("abortbtn").style.display = "none";
+                document.getElementById('printprogress').style.display = "none";
+                lPrintPrg.style.display = "none";
+            }
 
 
-            if('' !== serialReply)
-            {
-                if(true === updateTemperature(serialReply)) {
+            if ('' !== serialReply) {
+                if (true === updateTemperature(serialReply)) {
                     return;
                 }
-                else if(true == updatePosition(serialReply)) {
+                else if (true == updatePosition(serialReply)) {
                     return;
                 }
 
@@ -713,7 +740,7 @@
                 textArea.scrollTop = textArea.scrollHeight
             }
         }
-        
+
         function abortPrint() {
             if (confirm("Cancel printing ?")) {
                 var xhr = new XMLHttpRequest();
@@ -724,16 +751,17 @@
                 }
                 xhr.open("GET", "/abortPrint", true);
                 xhr.send();
+            }
         }
         /* T:110.03 /190.00 B:50.68 /0.00 @:0 B@:0 W:? */
         function updateTemperature(text) {
             var retVal = false;
             var re = /(B|T(\d*)):\s*([+]?[0-9]*\.?[0-9]+)? (\/)([+]?[0-9]*\.?[0-9]+)?/gi;
             while ((result = re.exec(text)) !== null) {
-                if(result[1] == 'T') {
+                if (result[1] == 'T') {
                     tdE0Temp.innerText = result[3] + '°C' + " \\ " + result[5] + '°C';
                 }
-                else if(result[1] == 'B') {
+                else if (result[1] == 'B') {
                     tdBedTemp.innerText = result[3] + '°C' + " \\ " + result[5] + '°C';
                     retVal = true;
                 }
@@ -749,7 +777,7 @@
             tdYPos.innerText = yVal;
             tdZPos.innerText = zVal;
 
-            if(xVal !== "???" || yVal !== "???" || zVal != "???") {
+            if (xVal !== "???" || yVal !== "???" || zVal != "???") {
                 return true;
             }
             else {
@@ -759,19 +787,17 @@
 
         function extractValue(axis, text) {
             var axisIdx = text.indexOf(axis);
-            if(axisIdx > -1)
-            {
+            if (axisIdx > -1) {
                 axisIdx += axis.length;
                 var spaceIdx = text.indexOf(' ', axisIdx);
-                if(spaceIdx > -1) {
+                if (spaceIdx > -1) {
                     return text.substring(axisIdx, spaceIdx).trim();
                 }
                 else {
                     return text.substring(axisIdx).trim();
                 }
             }
-            else
-            {
+            else {
                 return "???";
             }
         }
@@ -862,13 +888,9 @@
                 var xhr = new XMLHttpRequest();
                 xhr.onreadystatechange = function () {
                     if (this.readyState == 4 && this.status == 200) {
-
-                        // h = document.getElementById('heText');
-                        // h.style.display = 'block';
-                        // sdFileDiv.style.display = 'none';
                     }
                 }
-                xhr.open("GET", "/request?filename=" + name, true);
+                xhr.open("GET", "/request?printFile=" + name, true);
                 xhr.send();
             }
         }
@@ -898,8 +920,7 @@
             xhr.send();
         }
 
-        function sendCommand(cmd, lecho) {
-            // ev.preventDefault();
+        function Command_Send(cmd, lecho) {
             var xhr = new XMLHttpRequest();
             if (lecho == true) {
                 printerCmd = cmdText.value;
@@ -915,12 +936,11 @@
             }
         }
 
-        function relMvCmd(axis, len) {
-            sendCommand("G91", false);
-            sendCommand("G0 " + axis + len, false);
-            sendCommand("M114", false);
+        function relMvCmd(where) {
+            var cmd = 'G91%0AG1 ' + where + "%0AM114%0AG90"
+            Command_Send(cmd, false);
         }
-        
+
         function sendOnEnter(ev, type) {
             if (ev.keyCode == 13) {
                 sendVariantCmd(type);
@@ -929,34 +949,39 @@
         }
 
         function sendVariantCmd(type) {
-            var xhr = new XMLHttpRequest();
-            cmd = '';
-            if (type == 'e0') {
-                cmd = 'M104 S' + inE0Temp.value + ' T0';
+            var cmd;
+            switch (type) {
+                case 'e0':
+                    cmd = 'M104 S' + inE0Temp.value + ' T0';
+                    break;
+                case 'e0Off':
+                    cmd = 'M104 S0 T0';
+                    break;
+                case 'bed':
+                    cmd = 'M140 S' + inBedTemp.value;
+                    break;
+                case 'bedOff':
+                    cmd = 'M140 S0';
+                    break;
+                case 'fan':
+                    cmd = 'M106 P0 S' + inFan0Spd.value;
+                    break;
+                case 'fanOff':
+                    cmd = 'M107';
+                    break;
+                case 'feedr':
+                    cmd = 'M220' + inFeedRate.value;
+                    break;
+                case 'flowr':
+                    cmd = 'M221 S' + inFlowRate.value + ' T0';
+                    break;
+                default:
+                    cmd = "";
+                    break;
             }
-            else if(type == 'e0Off'){
-                cmd = 'M104 S0 T0';
-            }
-            else if (type == 'bed') {
-                cmd = 'M140 S' + inBedTemp.value;
-            }
-            else if (type == 'bedOff') {
-                cmd = 'M140 S0';
-            }
-            else if (type == 'fan') {
-                cmd = 'M106 P0 S' + inFan0Spd.value;
-            }
-            else if (type == 'fanOff') {
-                cmd = 'M107';
-            }
-            else if (type == 'feedr') {
-                cmd = 'M220' + inFeedRate.value;
-            }
-            else if (type == 'flowr') {
-                cmd = 'M221 S' + inFlowRate.value + ' T0';
-            }
-            if(cmd !== ''){
-                xhr.open("GET", "/request?gcodecmd=" + cmd, true);
+            if (cmd !== '') {
+                var xhr = new XMLHttpRequest();
+                xhr.open("GET", "/request?masterCmd=" + cmd, true);
                 xhr.send();
             }
         }
@@ -1011,18 +1036,18 @@
                 arguments[i].style.stroke = color;
             }
         }
-        
+
         function restore_z(e) {
             centerztext.textContent = 'Z';
             show_hide(e, 0);
         }
-        
+
         function restore_e(e) {
             show_hide(extruder, 1);
             show_hide(centeretext, 0);
             show_hide(e, 0);
         }
-        
+
         function settext_e(text, e) {
             if (isDown) return;
             show_hide(extruder, 0);
@@ -1030,7 +1055,7 @@
             show_hide(centeretext, 1);
             show_hide(e, 0.5);
         }
-        
+
         function show_hide(e, show) {
             e.style.opacity = show;
         }
@@ -1046,11 +1071,6 @@
             centerztext.textContent = text;
             show_hide(e, 0.5);
         }
-       
-        var fan_on = 0;
-        var bed_on = 0;
-        var ext1_on = 0;
-        var ext2_on = 0;
 
         //range functions
         var offset = 0;

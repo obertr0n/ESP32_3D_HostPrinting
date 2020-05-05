@@ -18,7 +18,6 @@ static AsyncWebSocket ws("/ws");
 static FSHandler fsHandler;
 static PrintHandler printHandler(&Serial);
 
-static String printFileName;
 static File printFile;
 static TaskHandle_t ph_Txtask_handle = NULL;
 static TaskHandle_t ph_Rxtask_handle = NULL;
@@ -100,6 +99,9 @@ void setup(void)
         LOG_Println("Failed to init FS");
     }
 
+    // WiFi.softAP("ESP_TestAP");
+    // Serial.println(WiFi.softAPIP().toString());
+
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
     LOG_Println("Connecting to ");
@@ -171,16 +173,17 @@ void setup(void)
     /* gcode commands */
     server.on("/request", HTTP_ANY, [](AsyncWebServerRequest *request) {
         int code = 403;
+        bool res = false; 
         String text;
-        if (request->hasArg("filename"))
+        if (request->hasArg("printFile"))
         {
-            printFileName = request->arg("filename");
+            text = request->arg("printFile");
 
-            if (fsHandler.exists(printFileName))
+            if (fsHandler.exists(text))
             {
                 if (!printHandler.isPrinting())
                 {
-                    printFile = fsHandler.openFile(printFileName, FILE_READ);
+                    printFile = fsHandler.openFile(text, FILE_READ);
                     printHandler.startPrint(printFile);
                     code = 200;
                     text = "OK";
@@ -198,61 +201,34 @@ void setup(void)
         else if (request->hasArg("gcodecmd"))
         {
             text = request->arg("gcodecmd");
-            if (printHandler.add(text))
-            {
-                code = 200;
-                text = "OK";
-            }
-            else
-            {
-                text = "Job not acccepted";
-            }
+            res = printHandler.appendCommand(text);
+        }
+        else if(request->hasArg("masterCmd"))
+        {
+            text = request->arg("masterCmd");
+            /* a master command can be send even during print! */
+            res = printHandler.appendCommand(text, true);
         }
         else if(request->hasArg("deletef"))
         {
-            String fileName = request->arg("deletef");
-            if (fsHandler.remove(fileName))
-            {
-                code = 200;
-                text = "OK";
-            }
-            else
-            {
-                text = "File not found!";
-            }
+            text = request->arg("deletef");
+            res = fsHandler.remove(text);
         }
         else
         {
             text = "Job not acccepted";
         }
-        request->send(code, "text/plain", text);
-    });
-    /* delete a file */
-    server.on("/del", HTTP_ANY, [](AsyncWebServerRequest *request) {
-        int code = 403;
-        String text;
-        if (request->hasArg("filename"))
-        {
-            printFileName = request->arg("filename");
 
-            if (fsHandler.exists(printFileName))
-            {
-                printFile = fsHandler.openFile(printFileName, FILE_READ);
-                printHandler.startPrint(printFile);
-                code = 200;
-                text = "OK";
-             }
-            else
-            {
-                code = 403;
-                text = "File not found!";
-            }
+        if(res)
+        {
+            code = 200;
+            text = "OK";
         }
         else
         {
-            code = 403;
-            text = "Job not acccepted";
+            text = "Operation Failed";
         }
+
         request->send(code, "text/plain", text);
     });
     /* list directories */

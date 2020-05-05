@@ -47,17 +47,22 @@ public:
     uint32_t freeSlots()
     {
         uint32_t freePos = 0;
-        if(!_full)
+
+        if(isEmpty())
+        {
+            freePos = MAX_QUEUE_LENGTH;
+        }
+        else if(!_full)
         {
             if(_head > _tail)
             {
-                freePos = _head - _tail;
+                freePos = MAX_QUEUE_LENGTH - _head;
             }
             else
             {
                 freePos = MAX_QUEUE_LENGTH + _head - _tail;
             }            
-        }        
+        }  
         return freePos;
     };
 };
