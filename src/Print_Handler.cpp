@@ -279,7 +279,6 @@ void PrintHandler::processSerialRx()
                 }
                 else if (isMoveReply(l_serialReply) || isTempReply(l_serialReply))
                 {
-                    _ackRcv = true;
                     resetCommTimeout();
                 }
                 else if (l_serialReply.startsWith("echo:busy"))
