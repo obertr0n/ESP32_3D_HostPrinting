@@ -96,7 +96,7 @@ inline void PrintHandler::appendLine(String &line)
     {
         saneLine = line.substring(0, commentIdx);
         saneLine.trim();
-        if(saneLine.length()  > 2)
+        if(saneLine.length()  > 1)
         {
             validFound = true;
         }

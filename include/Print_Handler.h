@@ -63,7 +63,7 @@ private:
     String _serialReply;
 
     static const uint16_t BAUD_RATES_COUNT = 1;
-    const uint32_t BAUD_RATES[BAUD_RATES_COUNT] = {250000};
+    const uint32_t BAUD_RATES[BAUD_RATES_COUNT] = {115200};
 
     // static const uint16_t BAUD_RATES_COUNT = 9;
     // const uint32_t BAUD_RATES[BAUD_RATES_COUNT] = {2400, 9600, 19200, 38400, 57600, 115200, 250000 , 500000, 1000000};
