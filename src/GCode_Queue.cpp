@@ -12,12 +12,12 @@ String MsgQueue::pop()
     }
     /* next will be the tail after this pop */
     next = _tail + 1;
-    if(next >=MAX_QUEUE_LENGTH)
+    if(next >=HP_CMD_QUEUE_SIZE)
     {
         next = 0;
     }
     
-    ret = _msgQueue[_tail];
+    ret = _msgQueue[_tail].command;
     /* update the tail */
     _tail = next;
     _full = false;
@@ -25,11 +25,11 @@ String MsgQueue::pop()
     return ret;
 }
 
-bool MsgQueue::push(const String& msg)
+bool MsgQueue::push(const GCodeCmd& msg)
 {
     uint32_t next = _head + 1;
     /* we are at top, circle to first element */
-    if (next >= MAX_QUEUE_LENGTH)
+    if (next >= HP_CMD_QUEUE_SIZE)
     {
         next = 0;
     }

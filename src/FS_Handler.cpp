@@ -8,7 +8,7 @@
 bool FSHandler::begin()
 {
     /* init SPI for SD communication */
-    SPI.begin(14, 2, 15, 13);
+    SPI.begin(PIN_SD_CLK, PIN_SD_MISO, PIN_SD_MOSI, PIN_SD_SS);
     /* at the moment we don't know the FS type */
     _storageType = FS_NONE;
     _FSRoot = NULL;
@@ -24,7 +24,7 @@ bool FSHandler::begin()
         ret = true;
     }
     /* try and mount SD */
-    if (SD.begin(13))
+    if (SD.begin(PIN_SD_SS))
     {
         LOG_Println("SD Card initialized.");
         if (_storageType == FS_SPIFFS)
@@ -43,7 +43,6 @@ bool FSHandler::begin()
 
         ret= true;
     }
-
     return ret;
 }
 

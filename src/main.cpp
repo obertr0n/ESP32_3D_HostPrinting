@@ -89,10 +89,9 @@ void setup_ph_task()
 void setup(void)
 {
     LOG_Init();
-    // printHandler.begin(250000, &ws);
     
-    disableCore0WDT();
-    disableCore1WDT();
+    // disableCore0WDT();
+    // disableCore1WDT();
 
     while (!fsHandler.begin())
     {
@@ -104,6 +103,7 @@ void setup(void)
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
+
     LOG_Println("Connecting to ");
     LOG_Println(ssid);
 
@@ -184,7 +184,7 @@ void setup(void)
                 if (!printHandler.isPrinting())
                 {
                     printFile = fsHandler.openFile(text, FILE_READ);
-                    printHandler.startPrint(printFile);
+                    printHandler.requestPrint(printFile);
                     code = 200;
                     text = "OK";
                 }
@@ -201,13 +201,13 @@ void setup(void)
         else if (request->hasArg("gcodecmd"))
         {
             text = request->arg("gcodecmd");
-            res = printHandler.appendCommand(text);
+            res = printHandler.addCommand(text, false, false);
         }
         else if(request->hasArg("masterCmd"))
         {
             text = request->arg("masterCmd");
             /* a master command can be send even during print! */
-            res = printHandler.appendCommand(text, true);
+            res = printHandler.addCommand(text);
         }
         else if(request->hasArg("deletef"))
         {
@@ -242,53 +242,6 @@ void setup(void)
             request->send(200, "text/plain", fsHandler.jsonifyDir(".gcode"));
         }
     });
-    /* freertos stats */
-    server.on("/stats", HTTP_GET, [](AsyncWebServerRequest *request) {
-        String result;
-        TaskStatus_t *pxTaskStatusArray;
-        volatile UBaseType_t uxArraySize, x;
-        uint32_t ulTotalRunTime, ulStatsAsPercentage;
-
-        /* Take a snapshot of the number of tasks in case it changes while this
-        function is executing. */
-        uxArraySize = uxTaskGetNumberOfTasks();
-
-        /* Allocate a TaskStatus_t structure for each task.  An array could be
-        allocated statically at compile time. */
-        pxTaskStatusArray = (TaskStatus_t *)pvPortMalloc(uxArraySize * sizeof(TaskStatus_t));
-
-        /* Generate raw status information about each task. */
-        uxArraySize = uxTaskGetSystemState(pxTaskStatusArray,
-                                           uxArraySize,
-                                           &ulTotalRunTime);
-
-        /* For percentage calculations. */
-        ulTotalRunTime /= 100UL;
-
-        /* Avoid divide by zero errors. */
-        if (ulTotalRunTime > 0)
-        {
-            /* For each populated position in the pxTaskStatusArray array,
-         format the raw data as human readable ASCII data. */
-            for (x = 0; x < uxArraySize; x++)
-            {
-                /* What percentage of the total run time has the task used?
-            This will always be rounded down to the nearest integer.
-            ulTotalRunTimeDiv100 has already been divided by 100. */
-                ulStatsAsPercentage =
-                    pxTaskStatusArray[x].ulRunTimeCounter / ulTotalRunTime;
-
-                result += "\r\nName:" + (String)pxTaskStatusArray[x].pcTaskName +
-                          "\r\n\tPirority: " + (String)pxTaskStatusArray[x].uxCurrentPriority +
-                          "\r\n\tRuntimeCtr: " + (String)pxTaskStatusArray[x].ulRunTimeCounter +
-                          "\r\n\tPercentage: " + (String)ulStatsAsPercentage;
-            }
-        }
-
-        ws.textAll(result);
-        /* The array is no longer needed, free the memory it consumes. */
-        vPortFree(pxTaskStatusArray);
-    });   
     /* abort a print job */
     server.on("/abortPrint", HTTP_GET, [](AsyncWebServerRequest *request) {
         if (!printHandler.isPrinting())
@@ -311,16 +264,10 @@ void setup(void)
 
 void loop(void)
 {
-    /* telnet support */
-    // util_telnetLoop();
-
     /* check if a reboot is required */
     ota_loop();
         
     printHandler.loopRx();
     printHandler.loopTx();
 
-    // listTasks();
-    // util_telnetSend("This is a test" + i);
-    // ws.textAll(JSONtxt);
 }
