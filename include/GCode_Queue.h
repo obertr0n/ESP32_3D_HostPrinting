@@ -27,7 +27,7 @@ public:
         _full = false;
     };
     bool push(const GCodeCmd& cmd);
-    String pop();
+    GCodeCmd pop();
     String peek();
     uint32_t maxSize() 
     { 

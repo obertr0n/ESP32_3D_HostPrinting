@@ -1,0 +1,1 @@
+python ex_decoder/decoder.py -p ESP32 -t C:\Users\alexb\.platformio\packages\toolchain-xtensa32\ -e ..\.pio\build\esp32cam\firmware.elf -f ex.log

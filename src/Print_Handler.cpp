@@ -57,14 +57,14 @@ void PrintHandler::addLine(String& line)
     {
         line = line.substring(0, commentIdx);
         line.trim();
-        if(line.length()  > 1)
+        if(line.length()  > 2)
         {
-            addCommand(line);
+            queueCommand(line);
         }
     }
-    else
+    else if(line.length()  > 2)
     {
-        addCommand(line);
+        queueCommand(line);
     }
 }
 
@@ -81,18 +81,6 @@ void PrintHandler::detectPrinter()
         baudIndex %= BAUD_RATES_COUNT;
         resetCommTimeout();
     }
-}
-
-/* directly send a command to the printer if not printing */
-bool PrintHandler::send(String &command)
-{
-    if (!isPrinting())
-    {
-        write(command);
-        return true;
-    }
-
-    return false;
 }
 
 /*  T:110.03 /190.00 B:50.68 /0.00 @:0 B@:0 W:? */
@@ -203,7 +191,7 @@ void PrintHandler::updateWSState()
 void PrintHandler::processSerialRx()
 {
     static String l_serialReply;
-    const String v_resend_str = "Resend:";
+    const String v_resend_str = "Resend: ";
     while (_serial->available())
     {
         char c = (char)_serial->read();
@@ -217,9 +205,11 @@ void PrintHandler::processSerialRx()
                 if (parseM115(l_serialReply))
                 {
                     _state = PH_STATE_CONNECTED;
+                    _ackRcv = ACK_OK;
+                    _printerConnected = true;
+
                     String ip = util_getIP();
                     toLcd("Connect: " + ip);
-                    _printerConnected = true;
                 }
                 else
                 {
@@ -228,29 +218,53 @@ void PrintHandler::processSerialRx()
             }
             else
             {
-                if (l_serialReply.indexOf("ok") > -1)
-                {
-                    _ackRcv = ACK_OK;
-                    resetCommTimeout();
-                }
-                else if (l_serialReply.startsWith("echo:busy"))
+                if (l_serialReply.startsWith("echo:busy"))
                 {
                     _ackRcv = ACK_BUSY;
                 }
-                else if (l_serialReply.startsWith("Error"))
-                {
-                    _printCanceled = true;
-                }
+                // else if (l_serialReply.startsWith("Error"))
+                // {
+                //     _printCanceled = true;
+                // }
                 else if (l_serialReply.indexOf(v_resend_str) > -1)
                 {
-                    String resendNum = l_serialReply.substring(l_serialReply.indexOf(v_resend_str) + v_resend_str.length(), l_serialReply.indexOf('\n'));
+                    _serial->print("Org Str: ");
+                    _serial->println(l_serialReply);
+                    int strOffset = l_serialReply.indexOf(v_resend_str) + 8;
+                    _serial->print("Offset: ");
+                    _serial->println(strOffset);
 
-                    _rejectedLineNo = resendNum.toInt();
+                    String lineNum = l_serialReply.substring(strOffset, l_serialReply.indexOf('\n'));
+
+                    _serial->print("Resend line: ");
+                    _serial->println(lineNum);
+
+                    _rejectedLineNo = lineNum.toInt();
 
                     _ackRcv = ACK_RESEND;
                 }
                 else if (isMoveReply(l_serialReply) || isTempReply(l_serialReply))
                 {
+                    resetCommTimeout();
+                }
+                else if (l_serialReply.indexOf("ok") > -1)
+                {
+                    switch (_ackRcv)
+                    {
+                        case ACK_OUT_OF_SYNC:
+                            _ackRcv = ACK_RESEND;
+                        break;
+                        case ACK_DEFAULT:
+                        case ACK_WAIT:
+                        case ACK_BUSY:
+                            _ackRcv = ACK_OK;
+                        break;
+                        case ACK_RESEND:
+                        default:
+
+                        break;
+
+                    }
                     resetCommTimeout();
                 }
                 else
@@ -266,42 +280,48 @@ void PrintHandler::processSerialRx()
         }
     }
 }
-
+static AckState prev_AckRcv;
 /* send a command via Serial, only if printer ACK-ed the last command */
 void PrintHandler::processSerialTx()
 {
-    String cmd;
-    GCodeCmd gcmd;
-
+    String cmdToSend;
+    GCodeCmd cmd;
+    // if(prev_AckRcv != _ackRcv)
+    // {
+        // _serial->println(">a " + (String)_ackRcv);
+    //     prev_AckRcv = _ackRcv;
+    // }
     /* previous command was OK */
     if(ACK_OK == _ackRcv)
     {
         cmd = _sentPrintCmd.pop();
-
-        /* let's store the last sent line */
-        gcmd.command = cmd;
-        gcmd.line = _currentLineNo;
-        storeSentCmd(gcmd);
+        cmdToSend = cmd.command;
+        if(isPrinting())
+        {
+            /* let's store the last sent line */
+            storeSentCmd(cmd);
+        }
     }
-    else if(ACK_RESEND == _ackRcv || _rejectedLineNo != INVALID_LINE)
+    else if(ACK_RESEND == _ackRcv && _rejectedLineNo != INVALID_LINE)
     {
         /* we need to resend a previous command */
-        cmd = getStoredCmd(_rejectedLineNo);
+        cmdToSend = getStoredCmd(_rejectedLineNo);
+        _rejectedLineNo += 1U;
         /* if we are out of sync by only 1 command than no resending next cycle */
-        if(_rejectedLineNo + 1U == _currentLineNo)
+        if(_rejectedLineNo == _currentLineNo)
         {
             _rejectedLineNo = INVALID_LINE;
         }
         else
         {
-            // TODO: Check if this the correct approach
-            _rejectedLineNo++;
+            // we are STILL out of sync with the printer, try and recover
+            _ackRcv = ACK_OUT_OF_SYNC;
         }
     }
 
-    if (cmd != "")
+    if (cmdToSend != "")
     {
-        write(cmd);
+        write(cmdToSend);
         /* reset it only when the transmission is done? */
         _ackRcv = ACK_DEFAULT;
         _prevCmd = PH_CMD_OTHER;
@@ -355,12 +375,10 @@ void PrintHandler::loopTx()
         }        
         else
         {
-            String cancel = "Print aborted. Reset machine!";
             /* E0 OFF, Bed OFFF, Move Z10 mm up, WAIT FOR USER */
-            String command = "M112";
-
-            send(command);
-            toLcd(cancel);
+            // write("M112");
+            String message = "Print aborted. Reset machine!";
+            toLcd(message);
 
             _sentPrintCmd.clear();
             _state = PH_STATE_CANCELED;
@@ -388,13 +406,14 @@ void PrintHandler::startPrint()
     _printCompleted = false;
     _ackRcv = ACK_OK;
 
-    preBuffer();
+    // preBuffer();
 
     /* reset the line number and send M110 to the printer */
     _currentLineNo = 0U;
     _rejectedLineNo = 0U;
-    command = "M110 N" + (String)_currentLineNo;
-    send(command);
+
+    command = "M110 N0*35";    
+    queueCommand(command, true, false);
 
 }
 

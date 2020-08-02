@@ -201,13 +201,13 @@ void setup(void)
         else if (request->hasArg("gcodecmd"))
         {
             text = request->arg("gcodecmd");
-            res = printHandler.addCommand(text, false, false);
+            res = printHandler.queueCommand(text, false, false);
         }
         else if(request->hasArg("masterCmd"))
         {
             text = request->arg("masterCmd");
             /* a master command can be send even during print! */
-            res = printHandler.addCommand(text);
+            res = printHandler.queueCommand(text, true, false);
         }
         else if(request->hasArg("deletef"))
         {

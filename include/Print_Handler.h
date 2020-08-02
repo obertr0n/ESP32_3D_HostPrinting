@@ -33,7 +33,9 @@ enum AckState
     ACK_OK,
     ACK_WAIT,
     ACK_BUSY,
-    ACK_RESEND
+    ACK_RESEND,
+    ACK_OUT_OF_SYNC,
+    ACK_SYNC
 };
 
 class PrintHandler
@@ -76,41 +78,46 @@ private:
     uint32_t _currentLineNo;
     uint32_t _rejectedLineNo;
 
-    static const uint16_t BAUD_RATES_COUNT = 1;
     static const uint32_t INVALID_LINE = 0xffffffff;
+
+    static const uint16_t BAUD_RATES_COUNT = 1;
     const uint32_t BAUD_RATES[BAUD_RATES_COUNT] = {115200};
 
     // static const uint16_t BAUD_RATES_COUNT = 9;
     // const uint32_t BAUD_RATES[BAUD_RATES_COUNT] = {2400, 9600, 19200, 38400, 57600, 115200, 250000 , 500000, 1000000};
     /* transmit every 5s the progress  */
     static const uint32_t TOUT_PROGRESS = 5 * 1000;
-    /* communicaiton timeout in 3s */
+    /* communicaiton timeouts in 3s */
     static const uint32_t TOUT_COMM = 3 * 1000;
     /* timeout for websocked transmission */
     static const uint32_t TOUT_WSTX = 3 * 100;
+    /* timeout for Serial write command */
+    static const uint32_t TOUT_SERIAL_WRITE = 1 * 100;
 
     static const char M_COMMAND = 'M';
     static const char G_COMMAND = 'G';
     static const char T_COMMAND = 'T';
     static const char LF_CHAR = '\n';
     static const char CR_CHAR = '\r';
+    static const char COMMENT_CHAR = ';';
 
     static const String FIRMWARE_NAME_STR;
     static const String EXTRUDER_CNT_STR;
 
     void preBuffer();
-    
+
     void toLcd(String &text)
     {
-        addCommand("M117 " + text, true, false);
+        queueCommand("M117 " + text, true, false);
         _prevCmd = PH_CMD_M117;
     };
-    void write(String &text)
+    void write(String &command)
     {
-        if (_serial->availableForWrite())
-        {
-            _serial->println(text);
-        }
+        _serial->println(command);
+    }
+    void write(const char* command)
+    {
+        _serial->println(command);
     }
     bool isTempReply(String &reply)
     {
@@ -122,16 +129,14 @@ private:
     }
     void sendM115()
     {
-        String m115 = "M115";
-        send(m115);
+        write("M115");
         _prevCmd = PH_CMD_M115;
     }
-
     void writeProgress(uint8_t prc)
     {
         if ((millis() >= _prgTout) && (_prevCmd != PH_CMD_M73))
         {
-            addCommand("M73 P" + (String)prc);
+            queueCommand("M73 P" + (String)prc);
             _prgTout = millis() + TOUT_PROGRESS;
             _prevCmd = PH_CMD_M73;
         }
@@ -143,26 +148,26 @@ private:
     bool parseFile();
     void addLine(String &line);
     /* simple circular buffer */
-    void storeSentCmd(GCodeCmd& cmd)
+    void storeSentCmd(GCodeCmd &cmd)
     {
         _storedCmdIdx = _storedCmdIdx + 1;
         _storedCmdIdx %= HP_MAX_SAVED_CMD;
 
-        _storedPrintCmd[_storedCmdIdx] = cmd; 
+        _storedPrintCmd[_storedCmdIdx] = cmd;
     }
     /* search for and entry with the same line number
        empty string represents not found
      */
     String getStoredCmd(uint32_t no)
     {
-        for(uint32_t idx = _storedCmdIdx; idx >= 0; idx--)
+        for (uint32_t idx = _storedCmdIdx; idx >= 0; idx--)
         {
-            if(_storedPrintCmd[idx].line == no)
+            if (_storedPrintCmd[idx].line == no)
             {
                 return _storedPrintCmd[idx].command;
             }
         }
-        
+
         return "";
     }
     void processSerialRx();
@@ -182,50 +187,68 @@ public:
         _prgTout = 0;
         _wstxTout = 0;
         _storedCmdIdx = 0;
-        
+        _rejectedLineNo = INVALID_LINE;
+
         _printCompleted = false;
         _printCanceled = false;
         _printStarted = false;
         _printerConnected = false;
         _printRequested = false;
         _abortReq = false;
-        _ackRcv = ACK_BUSY;
-        
+        _ackRcv = ACK_OK;
+
         _state = PH_STATE_NC;
     };
 
-    bool addCommand(String& command, bool master=true, bool chksum=true)
+    bool queueCommand(String &command, bool master = true, bool chksum = true)
     {
         uint8_t checksum;
         String cmd;
         GCodeCmd msg;
-         /* only add a command if printer is connected */
+
+        // _serial->println("ac " + command);
+        // _serial->print("is master ");
+        // _serial->println(master);
+        // _serial->print("has checksum ");
+        // _serial->println(chksum);
+        // _serial->print("connected ");
+        // _serial->println(_printerConnected);
+        // _serial->print("printing ");
+        // _serial->println(isPrinting());
+
+        /* only add a command if printer is connected */
         if (_printerConnected)
         {
             /* special case where a master command is requested */
-            if(!isPrinting() || master)
+            if (!isPrinting() || master)
             {
-                if(chksum)
+                if (chksum)
                 {
+                    _currentLineNo++;
+                    cmd = "N" + (String)_currentLineNo + " " + command;
                     /* compute checksum */
                     checksum = 0U;
-                    for(uint32_t i = 0U; i < command.length(); i++)
+                    for (uint32_t i = 0U; i < cmd.length(); i++)
                     {
-                        checksum ^= command[i];
+                        checksum ^= cmd[i];
                     }
-                    cmd = 'N' + _currentLineNo + command + '*' + checksum;
+
+                    cmd += "*" + (String)checksum;
+                    msg.line = _currentLineNo;
                 }
                 else
                 {
                     cmd = command;
                 }
+
+                // _serial->println("sc " + cmd);
+
                 msg.command = cmd;
-                msg.line = _currentLineNo;
-                
+
                 return _sentPrintCmd.push(msg);
             }
         }
-        return false;    
+        return false;
     }
 
     void abortPrint()
@@ -243,7 +266,6 @@ public:
     void begin(AsyncWebSocket *ws);
     void loopTx();
     void loopRx();
-    bool send(String &command);
 
     String getState()
     {
@@ -278,7 +300,7 @@ public:
         while (!_sentPrintCmd.isEmpty())
         {
             _serial->print("CMD: ");
-            _serial->println(_sentPrintCmd.pop());
+            _serial->println(_sentPrintCmd.pop().command);
         }
     }
 };

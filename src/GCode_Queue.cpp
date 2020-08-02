@@ -1,14 +1,14 @@
 #include "GCode_Queue.h"
 
-String MsgQueue::pop()
+GCodeCmd MsgQueue::pop()
 {
 	uint8_t next = 0;
-    String ret;
+    GCodeCmd ret = {"", 0xffffffffu};
 
     /* buffer apperas empty */
     if (_head == _tail)
     {
-        return "";
+        return ret;
     }
     /* next will be the tail after this pop */
     next = _tail + 1;
@@ -17,7 +17,7 @@ String MsgQueue::pop()
         next = 0;
     }
     
-    ret = _msgQueue[_tail].command;
+    ret = _msgQueue[_tail];
     /* update the tail */
     _tail = next;
     _full = false;
