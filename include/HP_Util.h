@@ -1,7 +1,7 @@
 #ifndef HP_UTIL_h
 #define HP_UTIL_h
 
-#include "Arduino.h"
+// #include "Arduino.h"
 
 extern void util_init();
 extern void util_telnetLoop();

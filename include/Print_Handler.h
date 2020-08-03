@@ -29,13 +29,12 @@ enum TrackedCommands
 
 enum AckState
 {
-    ACK_DEFAULT,
-    ACK_OK,
-    ACK_WAIT,
-    ACK_BUSY,
-    ACK_RESEND,
-    ACK_OUT_OF_SYNC,
-    ACK_SYNC
+    ACK_DEFAULT = 0,
+    ACK_OK = 1,
+    ACK_WAIT = 2,
+    ACK_BUSY = 3,
+    ACK_RESEND = 4,
+    ACK_OUT_OF_SYNC = 5
 };
 
 class PrintHandler
@@ -75,7 +74,8 @@ private:
     String _extTemp[20];
 
     String _serialReply;
-    uint32_t _currentLineNo;
+    uint32_t _queueLineNo;
+    uint32_t _ackLineNo;
     uint32_t _rejectedLineNo;
 
     static const uint32_t INVALID_LINE = 0xffffffff;
@@ -105,7 +105,6 @@ private:
     static const String EXTRUDER_CNT_STR;
 
     void preBuffer();
-
     void toLcd(String &text)
     {
         queueCommand("M117 " + text, true, false);
@@ -146,6 +145,7 @@ private:
     void updateWSState();
     void resetCommTimeout() { _commTout = millis() + TOUT_COMM; };
     bool parseFile();
+    bool isFileEmpty() { return _file.available() == 0; };
     void addLine(String &line);
     /* simple circular buffer */
     void storeSentCmd(GCodeCmd &cmd)
@@ -205,16 +205,17 @@ public:
         uint8_t checksum;
         String cmd;
         GCodeCmd msg;
-
-        // _serial->println("ac " + command);
-        // _serial->print("is master ");
-        // _serial->println(master);
-        // _serial->print("has checksum ");
-        // _serial->println(chksum);
-        // _serial->print("connected ");
-        // _serial->println(_printerConnected);
-        // _serial->print("printing ");
-        // _serial->println(isPrinting());
+#if __DEBUG_MODE == ON
+        _serial->println("ac " + command);
+        _serial->print("is master ");
+        _serial->println(master);
+        _serial->print("has checksum ");
+        _serial->println(chksum);
+        _serial->print("connected ");
+        _serial->println(_printerConnected);
+        _serial->print("printing ");
+        _serial->println(isPrinting());
+#endif
 
         /* only add a command if printer is connected */
         if (_printerConnected)
@@ -224,8 +225,8 @@ public:
             {
                 if (chksum)
                 {
-                    _currentLineNo++;
-                    cmd = "N" + (String)_currentLineNo + " " + command;
+                    _queueLineNo++;
+                    cmd = "N" + (String)_queueLineNo + " " + command;
                     /* compute checksum */
                     checksum = 0U;
                     for (uint32_t i = 0U; i < cmd.length(); i++)
@@ -234,14 +235,15 @@ public:
                     }
 
                     cmd += "*" + (String)checksum;
-                    msg.line = _currentLineNo;
+                    msg.line = _queueLineNo;
                 }
                 else
                 {
                     cmd = command;
                 }
-
-                // _serial->println("sc " + cmd);
+#if __DEBUG_MODE == ON
+                _serial->println("sc " + cmd);
+#endif
 
                 msg.command = cmd;
 
@@ -255,7 +257,6 @@ public:
     {
         _abortReq = true;
     }
-
     bool isPrinting() { return (_state == PH_STATE_PRINT_REQ || _state == PH_STATE_PRINTING); }
     void requestPrint(File &file)
     {
@@ -266,7 +267,6 @@ public:
     void begin(AsyncWebSocket *ws);
     void loopTx();
     void loopRx();
-
     String getState()
     {
         String stateStr;
@@ -294,14 +294,28 @@ public:
         }
         return stateStr;
     };
+    void cancelPrint()
+    {
+        _printCanceled = false;
+        _abortReq = false;
+        _printStarted = false;
+        _printRequested = false;
+        _storedCmdIdx = 0U; 
 
+        _queueLineNo = 0U;
+        _ackLineNo = 0U;
+        _rejectedLineNo = INVALID_LINE;
+        _sentPrintCmd.clear();
+    }
     void printbuff()
     {
+#if __DEBUG_MODE == ON
         while (!_sentPrintCmd.isEmpty())
         {
             _serial->print("CMD: ");
             _serial->println(_sentPrintCmd.pop().command);
         }
+#endif
     }
 };
 

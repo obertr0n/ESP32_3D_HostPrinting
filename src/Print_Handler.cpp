@@ -1,5 +1,4 @@
 #include "Print_Handler.h"
-#include "HP_Config.h"
 #include "HP_Util.h"
 
 const String PrintHandler::FIRMWARE_NAME_STR = "FIRMWARE_NAME:";
@@ -191,7 +190,9 @@ void PrintHandler::updateWSState()
 void PrintHandler::processSerialRx()
 {
     static String l_serialReply;
-    const String v_resend_str = "Resend: ";
+    const String v_resendText_str = "Resend: ";
+    const int c_reSendLen_i = v_resendText_str.length();
+
     while (_serial->available())
     {
         char c = (char)_serial->read();
@@ -226,51 +227,49 @@ void PrintHandler::processSerialRx()
                 // {
                 //     _printCanceled = true;
                 // }
-                else if (l_serialReply.indexOf(v_resend_str) > -1)
+                else if (l_serialReply.indexOf(v_resendText_str) > -1)
                 {
-                    _serial->print("Org Str: ");
-                    _serial->println(l_serialReply);
-                    int strOffset = l_serialReply.indexOf(v_resend_str) + 8;
-                    _serial->print("Offset: ");
-                    _serial->println(strOffset);
-
-                    String lineNum = l_serialReply.substring(strOffset, l_serialReply.indexOf('\n'));
-
+                    int strOffset = l_serialReply.indexOf(v_resendText_str) + c_reSendLen_i;
+                    String lineNum = l_serialReply.substring(strOffset);
+                    lineNum.trim();
+#if __DEBUG_MODE == ON
                     _serial->print("Resend line: ");
                     _serial->println(lineNum);
-
+#endif
                     _rejectedLineNo = lineNum.toInt();
 
                     _ackRcv = ACK_RESEND;
                 }
-                else if (isMoveReply(l_serialReply) || isTempReply(l_serialReply))
-                {
-                    resetCommTimeout();
-                }
                 else if (l_serialReply.indexOf("ok") > -1)
                 {
-                    switch (_ackRcv)
+                    if(ACK_OUT_OF_SYNC == _ackRcv)
                     {
-                        case ACK_OUT_OF_SYNC:
-                            _ackRcv = ACK_RESEND;
-                        break;
-                        case ACK_DEFAULT:
-                        case ACK_WAIT:
-                        case ACK_BUSY:
-                            _ackRcv = ACK_OK;
-                        break;
-                        case ACK_RESEND:
-                        default:
-
-                        break;
-
+#if __DEBUG_MODE == ON
+                        _serial->println("Ok, ACK_RESEND");
+#endif
+                        _ackRcv = ACK_RESEND;
+                    }
+                    else if((ACK_DEFAULT == _ackRcv) ||
+                            (ACK_WAIT == _ackRcv) ||
+                            (ACK_BUSY == _ackRcv) ||
+                            (ACK_OK == _ackRcv))
+                    {
+#if __DEBUG_MODE == ON
+                        _serial->println("Ok, ACK_OK");
+#endif
+                        _ackRcv = ACK_OK;
                     }
                     resetCommTimeout();
                 }
                 else
                 {
                     replyFound = false;
-                }                
+                }  
+                              
+                if (isMoveReply(l_serialReply) || isTempReply(l_serialReply))
+                {
+                    resetCommTimeout();
+                }              
             }            
             if (replyFound)
             {
@@ -280,17 +279,22 @@ void PrintHandler::processSerialRx()
         }
     }
 }
-static AckState prev_AckRcv;
-/* send a command via Serial, only if printer ACK-ed the last command */
+
+
+/* send a command via Serial. Also handle resending */
 void PrintHandler::processSerialTx()
 {
     String cmdToSend;
     GCodeCmd cmd;
-    // if(prev_AckRcv != _ackRcv)
-    // {
-        // _serial->println(">a " + (String)_ackRcv);
-    //     prev_AckRcv = _ackRcv;
-    // }
+#if __DEBUG_MODE == ON
+    static AckState prevAckRcv = ACK_DEFAULT;
+    if(prevAckRcv != _ackRcv)
+    {
+        prevAckRcv = _ackRcv;
+        _serial->println(_ackRcv);
+    }
+#endif
+
     /* previous command was OK */
     if(ACK_OK == _ackRcv)
     {
@@ -298,8 +302,10 @@ void PrintHandler::processSerialTx()
         cmdToSend = cmd.command;
         if(isPrinting())
         {
+            parseFile();
             /* let's store the last sent line */
             storeSentCmd(cmd);
+            _ackLineNo++;
         }
     }
     else if(ACK_RESEND == _ackRcv && _rejectedLineNo != INVALID_LINE)
@@ -307,24 +313,43 @@ void PrintHandler::processSerialTx()
         /* we need to resend a previous command */
         cmdToSend = getStoredCmd(_rejectedLineNo);
         _rejectedLineNo += 1U;
+#if __DEBUG_MODE == ON
+        _serial->print("Reject: ");
+        _serial->println(_rejectedLineNo);
+        _serial->print("Current: ");
+        _serial->println(_ackLineNo);
+#endif
+
         /* if we are out of sync by only 1 command than no resending next cycle */
-        if(_rejectedLineNo == _currentLineNo)
+        if(_rejectedLineNo == _ackLineNo)
         {
             _rejectedLineNo = INVALID_LINE;
+            /* reset state */
+            _ackRcv = ACK_DEFAULT;
         }
         else
         {
+#if __DEBUG_MODE == ON
+            _serial->println("OoS");
+#endif
             // we are STILL out of sync with the printer, try and recover
             _ackRcv = ACK_OUT_OF_SYNC;
         }
+    }
+    else
+    {
+
     }
 
     if (cmdToSend != "")
     {
         write(cmdToSend);
-        /* reset it only when the transmission is done? */
-        _ackRcv = ACK_DEFAULT;
         _prevCmd = PH_CMD_OTHER;
+        /* an OK will be resetted here, other states are handled above */
+        if(ACK_OK == _ackRcv)
+        {
+            _ackRcv = ACK_DEFAULT;
+        }
     }
 }
 
@@ -358,8 +383,9 @@ void PrintHandler::loopTx()
     case PH_STATE_PRINTING:
         if(!_abortReq && !_printCanceled)
         {            
-            /* file still has data and the command buffer is empty */
-            if((parseFile() == false) && (_sentPrintCmd.isEmpty() == true))
+            /* no more data in file and the command buffer is empty */
+            if((isFileEmpty() == true) && 
+                (_sentPrintCmd.isEmpty() == true))
             {             
                 _printStarted = false;
                 _printCompleted = true;
@@ -375,22 +401,15 @@ void PrintHandler::loopTx()
         }        
         else
         {
-            /* E0 OFF, Bed OFFF, Move Z10 mm up, WAIT FOR USER */
+            /* request abort, machine reset IS required */
             // write("M112");
-            String message = "Print aborted. Reset machine!";
-            toLcd(message);
-
+ 
             _sentPrintCmd.clear();
             _state = PH_STATE_CANCELED;
         }
     break;
     case PH_STATE_CANCELED:
-        _printCanceled = false;
-        _abortReq = false;
-        _printCompleted = false;
-        _printStarted = false;
-        _printRequested = false;
-        _storedCmdIdx = 0;
+        cancelPrint();
         _state = PH_STATE_IDLE;
     break;
     default:
@@ -406,15 +425,15 @@ void PrintHandler::startPrint()
     _printCompleted = false;
     _ackRcv = ACK_OK;
 
-    // preBuffer();
-
     /* reset the line number and send M110 to the printer */
-    _currentLineNo = 0U;
+    _queueLineNo = 0U;
+    _ackLineNo = 0U;
     _rejectedLineNo = 0U;
 
     command = "M110 N0*35";    
     queueCommand(command, true, false);
-
+    /* make sure that we have some buffered data */
+    preBuffer();
 }
 
 void PrintHandler::loopRx()
