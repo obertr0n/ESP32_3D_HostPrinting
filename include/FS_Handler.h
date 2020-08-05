@@ -78,4 +78,6 @@ public:
     };
 };
 
+extern FSHandler FileHandler;
+
 #endif

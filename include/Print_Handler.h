@@ -7,6 +7,7 @@
 
 #include "GCode_Queue.h"
 
+
 enum PrintState
 {
     PH_STATE_NC,
@@ -48,7 +49,6 @@ private:
     uint32_t _storedCmdIdx;
 
     HardwareSerial *_serial;
-    AsyncWebSocket *_aWs;
     TrackedCommands _prevCmd;
 
     size_t _fileSize;
@@ -180,9 +180,8 @@ private:
     void startPrint();
 
 public:
-    PrintHandler(HardwareSerial *port)
+    PrintHandler()
     {
-        _serial = port;
         _estCompPrc = 0;
         _prgTout = 0;
         _wstxTout = 0;
@@ -264,7 +263,7 @@ public:
         _fileSize = _file.size();
         _printRequested = true;
     };
-    void begin(AsyncWebSocket *ws);
+    void begin(HardwareSerial* port);
     void loopTx();
     void loopRx();
     String getState()
@@ -318,5 +317,7 @@ public:
 #endif
     }
 };
+
+extern PrintHandler HP_Handler;
 
 #endif

@@ -5,6 +5,8 @@
 #include "FS_Handler.h"
 #include "HP_Config.h"
 
+FSHandler FileHandler;
+
 bool FSHandler::begin()
 {
     /* init SPI for SD communication */

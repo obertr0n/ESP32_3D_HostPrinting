@@ -1,12 +1,15 @@
 #include "Print_Handler.h"
+#include "WebPrint_Server.h"
 #include "HP_Util.h"
+
+PrintHandler HP_Handler;
 
 const String PrintHandler::FIRMWARE_NAME_STR = "FIRMWARE_NAME:";
 const String PrintHandler::EXTRUDER_CNT_STR = "EXTRUDER_COUNT:";
 
-void PrintHandler::begin(AsyncWebSocket *ws)
-{
-    _aWs = ws;
+void PrintHandler::begin(HardwareSerial* port)
+{    
+    _serial = port;
     _serial->begin(BAUD_RATES[0]);
 }
 
@@ -176,12 +179,8 @@ void PrintHandler::updateWSState()
         outStr = "PS=" + getState();
         outStr += "PG=" + (String)_estCompPrc;
         outStr += "PR=" + _serialReply;
-                    
-        // transmit back what we received
-        if (_aWs->availableForWriteAll())
-        {
-            _aWs->textAll(outStr);
-        }
+        PrintServer.write(outStr);
+
         _serialReply = "";
         _wstxTout = millis() + TOUT_WSTX;
     }

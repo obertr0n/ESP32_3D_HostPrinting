@@ -3,11 +3,6 @@
 #include "HP_Util.h"
 #include "HP_Config.h"
 
-static WiFiServer telnet(23);
-static WiFiClient telnetClient;
-
-static void util_telnetInit();
-
 String util_millisToTime()
 {
     String Time = "";
@@ -34,33 +29,6 @@ void util_init()
 {
     // pinMode(PIN_CAM_FLASH, OUTPUT);
     pinMode(PIN_LED, OUTPUT);
-
-    // util_telnetInit();
-}
-
-static void util_telnetInit()
-{
-    telnet.begin();
-    telnet.setNoDelay(true);
-}
-
-void util_telnetLoop()
-{
-    if (telnet.hasClient() && (!telnetClient.connected()))
-    {
-        telnetClient.stop();
-
-        telnetClient = telnet.available();
-        telnetClient.flush();
-    }
-}
-
-void util_telnetSend(String line)
-{
-    if (telnetClient.connected())
-    {
-        telnetClient.println(line);
-    }
 }
 
 String util_getIP()
