@@ -52,7 +52,12 @@ void WiFiManagerClass::startCaptive()
 void WiFiManagerClass::webServerHandleNotFound(AsyncWebServerRequest *request)
 {
     LOG_Println("In not found");
-    request->redirect("/");
+    if(request->url() != "/")
+    {
+        AsyncWebServerResponse* response = request->beginResponse(302, "text/plain", "");
+        response->addHeader("Location", String("http://") + request->client()->localIP().toString());
+        request->send(response);
+    }
 }
 
 void WiFiManagerClass::webServerGETLoadCSS(AsyncWebServerRequest *request)
@@ -69,10 +74,13 @@ void WiFiManagerClass::webServerGETRoot(AsyncWebServerRequest *request)
 
 void WiFiManagerClass::webServerANYWifReq(AsyncWebServerRequest *request)
 {
+    int code = 403;
+    String result;
+
     LOG_Println("Serve req");
     if (request->hasArg("refresh"))
     {
-        String result = "{\"networks\":[";
+        result = "{\"networks\":[";
         int16_t numNetworks = WiFi.scanNetworks();
         for (int16_t netId = 0; netId < numNetworks; netId++)
         {
@@ -84,7 +92,7 @@ void WiFiManagerClass::webServerANYWifReq(AsyncWebServerRequest *request)
         }
         result[result.length() - 1] = ']';
         result += "}";
-
+        code = 200;
         LOG_Println(result);
     }
     else if(request->hasArg("mode"))
@@ -104,12 +112,14 @@ void WiFiManagerClass::webServerANYWifReq(AsyncWebServerRequest *request)
     {
 
     }
+    request->send(code, "text/plain", result);
 }
 
 void WiFiManagerClass::startAP()
 {
     LOG_Println("Starting in AP mode");
     WiFi.softAP(AP_DEFAULT_SSID, AP_DEFAULT_PASS);
+    delay(2000);
     WiFi.softAPConfig(_softApIP, _softApIP, _softApSnet);
     WiFi.begin();
 }

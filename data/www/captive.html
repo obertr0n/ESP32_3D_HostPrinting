@@ -34,14 +34,18 @@
     </div>
     
 <script>
+    
+    const tbwifi = document.getElementById('tbody');
+    const twifi = document.getElementById('twifi');
+
     function refreshWifi() {
         var xhr = new XMLHttpRequest();
         xhr.open("GET", "/reqwifi?refresh", true);
         xhr.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
-                jsonFiles = JSON.parse(this.responseText);
-                createTable(jsonFiles.files, tbSdFiles);
-                tSdFiles.style.display = "table";
+                json = JSON.parse(this.responseText);
+                createWifList(json.networks, tbwifi);
+                twifi.style.display = "table";
             }
         }
         xhr.send();
@@ -51,22 +55,52 @@
     {
 
     }
-    function createWifList(array, table) {
+    function createWifList(array, tbody) {
         // remove all the existing table data
-        for (var i = table.rows.length - 1; i >= 0; i--) {
-            table.deleteRow(i);
+        for (var i = tbody.rows.length - 1; i >= 0; i--) {
+            tbody.deleteRow(i);
         }
-        var tableBody = "";
+        var body = "";
         for (var i = 0; i < array.length; i++) {
 
-            tableBody += "<tr id='filestr' onclick=\"connectTo('" + array[i].ssid + "')>";
-            tableBody += "<td id='tdssid'>" + array[i].ssid + "</td>";
-            tableBody += "<td id='tdrssi'>" + array[i].rssi + "</td>";
-            tableBody += "<td id='tdchan'>" + array[i].chan + "</td>";
-            tableBody += "<td id='tdtype'>" + array[i].type + "</td>";
-            tableBody += "</tr>";
+            body += "<tr id='filestr' onclick=\"connectTo('" + array[i].ssid + "')>";
+            body += "<td id='tdssid'>" + array[i].ssid + "</td>";
+            body += "<td id='tdrssi'>" + array[i].rssi + "</td>";
+            body += "<td id='tdchan'>" + array[i].chan + "</td>";
+
+            body += "<td id='tdtype'>" + getNetworkAuth(array[i].type) + "</td>";
+            body += "</tr>";
         }
-        table.innerHTML += tableBody;
+        tbody.innerHTML += body;
+    }
+    function getNetworkAuth(type)
+    {
+        var authType = "";
+        switch(type)
+        {
+            case "0":
+                authType = "Open";
+                break;
+            case "1":
+                authType = "WEP";
+                break;
+            case "2":
+                authType = "WPA_PSK";
+                break;
+            case "3":
+                authType = "WPA2_PSK";
+                break;
+            case "4":
+                authType = "WPA_WPA2_PSK";
+                break;
+            case "5":
+                authType = "WPA2_ENTERPRISE";
+                break;
+            default:
+                authType = "Unknown";
+                break;
+        }
+        return authType;
     }
 </script>
 </body>
