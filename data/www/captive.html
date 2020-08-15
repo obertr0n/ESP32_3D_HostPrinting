@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<head>
+<head onload="refreshWifi();">
     <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 
     <link rel="stylesheet" type="text/css" href="/www/captive.css">
@@ -10,6 +10,7 @@
 
 <body>
     <div id="container">
+        <p id="pmessage" style="text-align:center; font-size:17px;">Connect to a network or use AP mode only.</p>
         <div id="wiftable">
             <table id="twifi">
                 <thead id="twifihead">
@@ -24,18 +25,28 @@
                             <label>SSID</label>
                         </th>
                         <th id="thrssi" class="unselectable" unselectable="on">RSSI</th>
-                        <th id="thtype" class="unselectable" unselectable="on">Type</th>
                         <th id="thchannel" class="unselectable" unselectable="on">Channel</th>
+                        <th id="thsecurity" class="unselectable" unselectable="on">Security</th>
                     </tr>
                 </thead>
-                <tbody id="tbody"></tbody>
+                <tbody id="twifibody">
+                </tbody>
             </table>
         </div>
+        <!-- style="display: none;" -->
+        <div id="conconfig">
+            <div id="wificonfig">
+                <label for="wifipass">Password: </label>
+                <input type="text" id="wifipass">
+            </div>
+            <div id="savebtn" class="unselectable" unselectable="on" onclick="saveWifiConfig()">Save</div>
+        </div>
+        <div id="useaponly" class="unselectable" unselectable="on" onclick="useApMode()">Use AP mode only</div>
     </div>
     
 <script>
     
-    const tbwifi = document.getElementById('tbody');
+    const tbwifi = document.getElementById('twifibody');
     const twifi = document.getElementById('twifi');
 
     function refreshWifi() {
@@ -63,12 +74,12 @@
         var body = "";
         for (var i = 0; i < array.length; i++) {
 
-            body += "<tr id='filestr' onclick=\"connectTo('" + array[i].ssid + "')>";
+            body += "<tr id='filestr' onclick=\"connectTo('" + array[i].ssid + "')\">";
             body += "<td id='tdssid'>" + array[i].ssid + "</td>";
-            body += "<td id='tdrssi'>" + array[i].rssi + "</td>";
-            body += "<td id='tdchan'>" + array[i].chan + "</td>";
+            body += "<td id='tdrssi'>" + array[i].rssi + "db</td>";
+            body += "<td id='tdchannel'>" + array[i].chan + "</td>";
+            body += "<td id='tdsecurity'>" + getNetworkAuth(array[i].type) + "</td>";
 
-            body += "<td id='tdtype'>" + getNetworkAuth(array[i].type) + "</td>";
             body += "</tr>";
         }
         tbody.innerHTML += body;
