@@ -1,0 +1,95 @@
+body {
+    background: #3498db;
+    font-family: sans-serif;
+    font-size: 14px;
+    color: #777;
+    margin: auto;
+    padding-top: 10px;
+    width: 50%;
+}
+
+#wiftable {
+    background-color: #FFFFFF;
+}
+
+#twifi {
+    width: 100%;
+    border-radius: 1em;
+    overflow: hidden;
+}
+
+#twifi tr {
+    border-bottom: 1px solid #ddd;
+    width: 100%;
+    float:left;
+}
+
+#twifihead {
+    background-color: #5FADE2;
+    color: #ffff;
+    border-radius: 3px;
+}
+
+#twifihead th {
+    text-align: center;
+}
+
+#twifihead th,
+#twifi td {
+    word-wrap: break-word;
+    height: 20px;
+    padding-top: 5px;
+}
+
+#thssid,
+#tdssid {
+    float: left;
+    width: 68%;
+    text-align: center;
+}
+
+#tdssid {
+    text-align: left;
+}
+
+#tdrssi,
+#thrssi {
+    float: left;
+    width: 5%;
+    text-align: center;
+}
+
+#refresh {
+    cursor: pointer;
+    font-size: 13px;
+    height: 20px;
+    border-radius: 5px;
+    text-align: center;
+    float: left;
+}
+
+#tdtype,
+#thtype {
+    float: left;
+    width: 15%;
+}
+
+#tdtype {
+    cursor: pointer;
+    text-align: center;
+}
+
+#thchannel,
+#tdchannel {
+    width: 10%;
+    text-align: center;
+    float: right;
+}
+
+*.unselectable {
+    -moz-user-select: -moz-none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+ }

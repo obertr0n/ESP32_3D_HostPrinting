@@ -1,9 +1,8 @@
-#include <SD.h>
 #include <SPI.h>
-#include "SPIFFS.h"
 
-#include "FS_Handler.h"
-#include "HP_Config.h"
+#include "FileSys_Handler.h"
+#include "Config.h"
+#include "Log.h"
 
 FSHandler FileHandler;
 
@@ -116,8 +115,7 @@ String FSHandler::jsonifyDir(String dir, String ext)
         }
         jsonString[jsonString.length() - 1] = ']';
         jsonString += "}";
-        // jsonString += "}";
-
+        
         LOG_Println(jsonString);
 
         return jsonString;

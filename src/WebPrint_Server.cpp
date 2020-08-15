@@ -1,43 +1,40 @@
 #include "WebPrint_Server.h"
 #include "Print_Handler.h"
-#include "FS_Handler.h"
+#include "FileSys_Handler.h"
 #include <Update.h>
 
-File WebPrintServer::_printFile;
-int WebPrintServer::_uploadType = -1;
-bool WebPrintServer::_rebootRequired = false;
-
-AsyncWebServer WebPrintServer::_webServer = AsyncWebServer(80);
-AsyncWebSocket WebPrintServer::_webSocket = AsyncWebSocket("/ws");
+using namespace std;
 
 WebPrintServer PrintServer;
 
 void WebPrintServer::begin()
 {
     /* websocket handler config */
-    _webSocket.onEvent(webSocketEvent);
-    _webServer.addHandler(&_webSocket);
+    _webSocket->onEvent(bind(&WebPrintServer::webSocketEvent, this, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4, placeholders::_5, placeholders::_6));
+    _webServer->addHandler(_webSocket);
 
     /* serve css file */
-    _webServer.on("/www/style.css", HTTP_GET, webServerGETLoadCSS);
+    _webServer->on("/www/style.css", HTTP_GET, bind(&WebPrintServer::webServerGETLoadCSS, this, placeholders::_1));
     /* serve html index */
-    _webServer.on("/", HTTP_GET, webServerGETDefault);
+    _webServer->on("/", HTTP_GET, bind(&WebPrintServer::webServerGETDefault, this, placeholders::_1));
     /* handle file upload */
-    _webServer.on("/", HTTP_POST, webServerPOSTDefault, webServerPOSTUploadFile);
+    _webServer->on("/", HTTP_POST, bind(&WebPrintServer::webServerPOSTDefault, this, placeholders::_1),
+            bind(&WebPrintServer::webServerPOSTUploadFile, this, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4, placeholders::_5, placeholders::_6));
     /* handle PrintHandler request */
-    _webServer.on("/request", HTTP_ANY, webServerANYGcodeRequest);
+    _webServer->on("/request", HTTP_ANY, bind(&WebPrintServer::webServerANYGcodeRequest, this, placeholders::_1));
     /* handle directory listing */
-    _webServer.on("/dirs", HTTP_GET, webServerGETListDirectories);
+    _webServer->on("/dirs", HTTP_GET, bind(&WebPrintServer::webServerGETListDirectories, this, placeholders::_1));
     /* handle AbortPrint requests */
-    _webServer.on("/abortPrint", HTTP_GET, webServerGETAbortPrint);
+    _webServer->on("/abortPrint", HTTP_GET, bind(&WebPrintServer::webServerGETAbortPrint, this, placeholders::_1));
 
     /* firmware upload --> serve html index */
-    _webServer.on("/fwupload", HTTP_GET, webServerGETFirmwareUpdate);
+    _webServer->on("/fwupload", HTTP_GET, bind(&WebPrintServer::webServerGETFirmwareUpdate, this, placeholders::_1));
     /* firmware upload --> handle file upload */
-    _webServer.on("/fwupload", HTTP_POST, webServerPOSTFirmwareUpdate, webServerPOSTUploadFirmware);
+    _webServer->on("/fwupload", HTTP_POST, bind(&WebPrintServer::webServerPOSTFirmwareUpdate, this, placeholders::_1),
+            bind(&WebPrintServer::webServerPOSTUploadFirmware, this, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4, placeholders::_5, placeholders::_6));
 
     /* start our async webServer */
-    _webServer.begin();
+    _webServer->begin();
 }
 
 void WebPrintServer::loop()
@@ -87,7 +84,7 @@ void WebPrintServer::webServerPOSTDefault(AsyncWebServerRequest *request)
 
 void WebPrintServer::webServerPOSTUploadFile(AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final)
 {
-    if (HP_Handler.isPrinting())
+    if (PrintHandler.isPrinting())
     {
         request->send(403, "text/plain", "Job not accepted");
     }
@@ -124,10 +121,10 @@ void WebPrintServer::webServerANYGcodeRequest(AsyncWebServerRequest *request)
         text = request->arg("printFile");
         if (FileHandler.exists(text))
         {
-            if (!HP_Handler.isPrinting())
+            if (!PrintHandler.isPrinting())
             {
                 WebPrintServer::_printFile = FileHandler.openFile(text, FILE_READ);
-                HP_Handler.requestPrint(WebPrintServer::_printFile);
+                PrintHandler.requestPrint(WebPrintServer::_printFile);
                 code = 200;
                 text = "OK";
             }
@@ -144,13 +141,13 @@ void WebPrintServer::webServerANYGcodeRequest(AsyncWebServerRequest *request)
     else if (request->hasArg("gcodecmd"))
     {
         text = request->arg("gcodecmd");
-        res = HP_Handler.queueCommand(text, false, false);
+        res = PrintHandler.queueCommand(text, false, false);
     }
     else if (request->hasArg("masterCmd"))
     {
         text = request->arg("masterCmd");
         /* a master command can be send even during print! */
-        res = HP_Handler.queueCommand(text, true, false);
+        res = PrintHandler.queueCommand(text, true, false);
     }
     else if (request->hasArg("deletef"))
     {
@@ -176,7 +173,7 @@ void WebPrintServer::webServerANYGcodeRequest(AsyncWebServerRequest *request)
 
 void WebPrintServer::webServerGETListDirectories(AsyncWebServerRequest *request)
 {
-    if (HP_Handler.isPrinting())
+    if (PrintHandler.isPrinting())
     {
         request->send(403, "text/plain", "Job not accepted");
     }
@@ -188,13 +185,13 @@ void WebPrintServer::webServerGETListDirectories(AsyncWebServerRequest *request)
 
 void WebPrintServer::webServerGETAbortPrint(AsyncWebServerRequest *request)
 {
-    if (!HP_Handler.isPrinting())
+    if (!PrintHandler.isPrinting())
     {
         request->send(403, "text/plain", "Job not accepted");
     }
     else
     {
-        HP_Handler.abortPrint();
+        PrintHandler.abortPrint();
         request->send(200, "text/plain", "Print job Cancelled!");
     }
 }
@@ -241,8 +238,8 @@ void WebPrintServer::webServerPOSTUploadFirmware(AsyncWebServerRequest *request,
 
 void WebPrintServer::write(String& text)
 {
-    if (_webSocket.availableForWriteAll())
+    if (_webSocket->availableForWriteAll())
     {
-        _webSocket.textAll(text);
+        _webSocket->textAll(text);
     }
 }

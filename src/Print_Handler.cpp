@@ -1,22 +1,24 @@
 #include "Print_Handler.h"
 #include "WebPrint_Server.h"
-#include "HP_Util.h"
 
-PrintHandler HP_Handler;
+#include "Log.h"
+#include "Util.h"
 
-const String PrintHandler::FIRMWARE_NAME_STR = "FIRMWARE_NAME:";
-const String PrintHandler::EXTRUDER_CNT_STR = "EXTRUDER_COUNT:";
+PrintHandlerClass PrintHandler;
 
-void PrintHandler::begin(HardwareSerial* port)
+const String PrintHandlerClass::FIRMWARE_NAME_STR = "FIRMWARE_NAME:";
+const String PrintHandlerClass::EXTRUDER_CNT_STR = "EXTRUDER_COUNT:";
+
+void PrintHandlerClass::begin(HardwareSerial* port)
 {    
     _serial = port;
     _serial->begin(BAUD_RATES[0]);
 }
 
-void PrintHandler::preBuffer()
+void PrintHandlerClass::preBuffer()
 {
     String line;
-    while (_sentPrintCmd.freeSlots() > HP_CMD_SLOTS)
+    while (_sentPrintCmd.slots() > HP_CMD_SLOTS)
     {
         if (_file.available() > 0)
         {
@@ -26,7 +28,7 @@ void PrintHandler::preBuffer()
     }
 }
 
-bool PrintHandler::parseFile()
+bool PrintHandlerClass::parseFile()
 {
     String line;
     size_t bytesAvail = 0;
@@ -34,7 +36,7 @@ bool PrintHandler::parseFile()
     bytesAvail = _file.available();
     if (bytesAvail > 0)
     {
-        if (_sentPrintCmd.freeSlots() > HP_CMD_SLOTS)
+        if (_sentPrintCmd.slots() > HP_CMD_SLOTS)
         {
             line = _file.readStringUntil(LF_CHAR);
             
@@ -50,7 +52,7 @@ bool PrintHandler::parseFile()
     }
 }
 
-void PrintHandler::addLine(String& line)
+void PrintHandlerClass::addLine(String& line)
 {
     line.trim();
     const int commentIdx = line.indexOf(';');
@@ -70,7 +72,7 @@ void PrintHandler::addLine(String& line)
     }
 }
 
-void PrintHandler::detectPrinter()
+void PrintHandlerClass::detectPrinter()
 {
     static uint16_t baudIndex = 0;
 
@@ -78,7 +80,6 @@ void PrintHandler::detectPrinter()
     {
         _serial->updateBaudRate(BAUD_RATES[baudIndex]);
         sendM115();
-
         baudIndex += 1;
         baudIndex %= BAUD_RATES_COUNT;
         resetCommTimeout();
@@ -86,7 +87,7 @@ void PrintHandler::detectPrinter()
 }
 
 /*  T:110.03 /190.00 B:50.68 /0.00 @:0 B@:0 W:? */
-bool PrintHandler::parseTemp(const String &line)
+bool PrintHandlerClass::parseTemp(const String &line)
 {
     int t_pos = line.indexOf("T:");
     if (t_pos >= 0)
@@ -117,7 +118,7 @@ bool PrintHandler::parseTemp(const String &line)
     return false;
 }
 
-bool PrintHandler::parse503(const String &line)
+bool PrintHandlerClass::parse503(const String &line)
 {
     _serial->println("parse503");
     return false;
@@ -149,7 +150,7 @@ bool PrintHandler::parse503(const String &line)
     Cap:THERMAL_PROTECTION:1
     Cap:MOTION_MODES:0
     Cap:CHAMBER_TEMPERATURE:0 */
-bool PrintHandler::parseM115(const String &line)
+bool PrintHandlerClass::parseM115(const String &line)
 {
     int fwname_pos = line.indexOf(FIRMWARE_NAME_STR);
     if (fwname_pos >= 0)
@@ -171,7 +172,7 @@ bool PrintHandler::parseM115(const String &line)
     return false;
 }
 
-void PrintHandler::updateWSState()
+void PrintHandlerClass::updateWSState()
 {
     String outStr;
     if(millis() > _wstxTout)
@@ -186,7 +187,7 @@ void PrintHandler::updateWSState()
     }
 }
 
-void PrintHandler::processSerialRx()
+void PrintHandlerClass::processSerialRx()
 {
     static String l_serialReply;
     const String v_resendText_str = "Resend: ";
@@ -208,7 +209,7 @@ void PrintHandler::processSerialRx()
                     _ackRcv = ACK_OK;
                     _printerConnected = true;
 
-                    String ip = util_getIP();
+                    String ip = Util.getIp();
                     toLcd("Connect: " + ip);
                 }
                 else
@@ -231,10 +232,8 @@ void PrintHandler::processSerialRx()
                     int strOffset = l_serialReply.indexOf(v_resendText_str) + c_reSendLen_i;
                     String lineNum = l_serialReply.substring(strOffset);
                     lineNum.trim();
-#if __DEBUG_MODE == ON
-                    _serial->print("Resend line: ");
-                    _serial->println(lineNum);
-#endif
+                    LOG_Println("Resend line: ");
+                    LOG_Println(lineNum);
                     _rejectedLineNo = lineNum.toInt();
 
                     _ackRcv = ACK_RESEND;
@@ -243,9 +242,7 @@ void PrintHandler::processSerialRx()
                 {
                     if(ACK_OUT_OF_SYNC == _ackRcv)
                     {
-#if __DEBUG_MODE == ON
-                        _serial->println("Ok, ACK_RESEND");
-#endif
+                        LOG_Println("Ok, ACK_RESEND");
                         _ackRcv = ACK_RESEND;
                     }
                     else if((ACK_DEFAULT == _ackRcv) ||
@@ -253,9 +250,7 @@ void PrintHandler::processSerialRx()
                             (ACK_BUSY == _ackRcv) ||
                             (ACK_OK == _ackRcv))
                     {
-#if __DEBUG_MODE == ON
-                        _serial->println("Ok, ACK_OK");
-#endif
+                        LOG_Println("Ok, ACK_OK");
                         _ackRcv = ACK_OK;
                     }
                     resetCommTimeout();
@@ -281,7 +276,7 @@ void PrintHandler::processSerialRx()
 
 
 /* send a command via Serial. Also handle resending */
-void PrintHandler::processSerialTx()
+void PrintHandlerClass::processSerialTx()
 {
     String cmdToSend;
     GCodeCmd cmd;
@@ -290,14 +285,15 @@ void PrintHandler::processSerialTx()
     if(prevAckRcv != _ackRcv)
     {
         prevAckRcv = _ackRcv;
-        _serial->println(_ackRcv);
+        LOG_Println((uint32_t)_ackRcv);
     }
 #endif
 
     /* previous command was OK */
     if(ACK_OK == _ackRcv)
     {
-        cmd = _sentPrintCmd.pop();
+        cmd = _sentPrintCmd.front();
+        _sentPrintCmd.pop();
         cmdToSend = cmd.command;
         if(isPrinting())
         {
@@ -312,12 +308,10 @@ void PrintHandler::processSerialTx()
         /* we need to resend a previous command */
         cmdToSend = getStoredCmd(_rejectedLineNo);
         _rejectedLineNo += 1U;
-#if __DEBUG_MODE == ON
-        _serial->print("Reject: ");
-        _serial->println(_rejectedLineNo);
-        _serial->print("Current: ");
-        _serial->println(_ackLineNo);
-#endif
+        LOG_Println("Reject: ");
+        LOG_Println(_rejectedLineNo);
+        LOG_Println("Current: ");
+        LOG_Println(_ackLineNo);
 
         /* if we are out of sync by only 1 command than no resending next cycle */
         if(_rejectedLineNo == _ackLineNo)
@@ -328,9 +322,7 @@ void PrintHandler::processSerialTx()
         }
         else
         {
-#if __DEBUG_MODE == ON
-            _serial->println("OoS");
-#endif
+            LOG_Println("OoS");
             // we are STILL out of sync with the printer, try and recover
             _ackRcv = ACK_OUT_OF_SYNC;
         }
@@ -352,7 +344,7 @@ void PrintHandler::processSerialTx()
     }
 }
 
-void PrintHandler::loopTx()
+void PrintHandlerClass::loopTx()
 {
     switch (_state)
     {
@@ -384,7 +376,7 @@ void PrintHandler::loopTx()
         {            
             /* no more data in file and the command buffer is empty */
             if((isFileEmpty() == true) && 
-                (_sentPrintCmd.isEmpty() == true))
+                (_sentPrintCmd.empty() == true))
             {             
                 _printStarted = false;
                 _printCompleted = true;
@@ -416,7 +408,7 @@ void PrintHandler::loopTx()
     }
 }
 
-void PrintHandler::startPrint()
+void PrintHandlerClass::startPrint()
 {
     String command;
     _sentPrintCmd.clear();
@@ -435,7 +427,7 @@ void PrintHandler::startPrint()
     preBuffer();
 }
 
-void PrintHandler::loopRx()
+void PrintHandlerClass::loopRx()
 {
     processSerialRx();
     updateWSState();

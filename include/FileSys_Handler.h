@@ -1,7 +1,9 @@
-#ifndef FS_HANDLER_h
-#define FS_HANDLER_h
+#ifndef FILESYS_HANDLER_h
+#define FILESYS_HANDLER_h
 
 #include <FS.h>
+#include <SD.h>
+#include <SPIFFS.h>
 
 enum FSHandlerState
 {
@@ -30,6 +32,14 @@ private:
 
 public:
     bool begin();
+    size_t getSpiffsFreeBytes()
+    {
+        return (SPIFFS.totalBytes() - SPIFFS.usedBytes());
+    }
+    size_t getSdFreeBytes()
+    {
+        return (SD.totalBytes() - SD.usedBytes());
+    }
     FSHandlerState getWriteState() { return _state; };
     FSStorageType getStorageType() { return _storageType; }
     uint8_t maxPathLen() { return _pathMaxLen; }
@@ -48,19 +58,16 @@ public:
 
         return jsonifyDir(dir, ext);
     };
-    
     void listDir(const char *dirname, uint8_t levels);
     void writeBytes(String &path, const uint8_t *data, size_t len);
     bool exists(String &path)
     {
         return _FSRoot->exists(path);
     }
-
     bool remove(String &path)
     {
         return _FSRoot->remove(path);
     }
-
     File openFile(String &path, const char *mode)
     {
         String filePath = path;
@@ -80,4 +87,4 @@ public:
 
 extern FSHandler FileHandler;
 
-#endif
+#endif /* FILESYS_HANDLER_h */

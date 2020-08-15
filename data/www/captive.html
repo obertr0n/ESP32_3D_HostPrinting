@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+    <link rel="stylesheet" type="text/css" href="/www/captive.css">
+    <!-- <link rel="stylesheet" type="text/css" href="captive.css"> -->
+    <title>ESP32 HostPrint</title>
+</head>
+
+<body>
+    <div id="container">
+        <div id="wiftable">
+            <table id="twifi">
+                <thead id="twifihead">
+                    <tr>
+                        <th id="thssid" class="unselectable" unselectable="on">
+                            <div id="refresh" onclick="refreshWifi()"> Refresh
+                                <svg fill="#ffff" viewBox="0 0 24 24" width="1em" height="1em">
+                                    <path
+                                        d="M 7.1601562 3 L 8.7617188 5 L 19 5 L 19 15 L 16 15 L 20 20 L 24 15 L 21 15 L 21 3 L 7.1601562 3 z M 4 4 L 0 9 L 3 9 L 3 21 L 16.839844 21 L 15.238281 19 L 5 19 L 5 9 L 8 9 L 4 4 z" />
+                                </svg>
+                            </div>
+                            <label>SSID</label>
+                        </th>
+                        <th id="thrssi" class="unselectable" unselectable="on">RSSI</th>
+                        <th id="thtype" class="unselectable" unselectable="on">Type</th>
+                        <th id="thchannel" class="unselectable" unselectable="on">Channel</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+        </div>
+    </div>
+    
+<script>
+    function refreshWifi() {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", "/reqwifi?refresh", true);
+        xhr.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+                jsonFiles = JSON.parse(this.responseText);
+                createTable(jsonFiles.files, tbSdFiles);
+                tSdFiles.style.display = "table";
+            }
+        }
+        xhr.send();
+    }
+
+    function connectTo(ssid)
+    {
+
+    }
+    function createWifList(array, table) {
+        // remove all the existing table data
+        for (var i = table.rows.length - 1; i >= 0; i--) {
+            table.deleteRow(i);
+        }
+        var tableBody = "";
+        for (var i = 0; i < array.length; i++) {
+
+            tableBody += "<tr id='filestr' onclick=\"connectTo('" + array[i].ssid + "')>";
+            tableBody += "<td id='tdssid'>" + array[i].ssid + "</td>";
+            tableBody += "<td id='tdrssi'>" + array[i].rssi + "</td>";
+            tableBody += "<td id='tdchan'>" + array[i].chan + "</td>";
+            tableBody += "<td id='tdtype'>" + array[i].type + "</td>";
+            tableBody += "</tr>";
+        }
+        table.innerHTML += tableBody;
+    }
+</script>
+</body>
+
+
+</html>

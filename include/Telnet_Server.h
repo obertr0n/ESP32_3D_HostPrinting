@@ -2,40 +2,86 @@
 #define TELNET_SERVER_h
 
 #include "WiFi.h"
-#include "DNSServer.h"
-#include "AsyncTCP.h"
-#include "HP_Config.h"
+#include "Config.h"
+#include <Message_Queue.h>
+
+#define TELNET_SERVER_NAME "3DP_HostPrint"
+#define TELNET_LOG_SIZE 50
+
+#define TELNET_PORT 23
 
 class TelnetLogger : public Print
 {
-    private:
-        DNSServer _dnsServer;
-        static std::vector<AsyncClient*> _telnetClients;
+private:
+    // DNSServer _dnsServer;
+    WiFiServer _server;
+    WiFiClient _client;
+    MessageQueue<String> _messageList;
 
-        static void tcpServerErrorHandler(void* arg, AsyncClient* client, int8_t error);
-        static void tcpServerDataHandler(void* arg, AsyncClient* client, void *data, size_t len);
-        static void tcpServerDisconnectHandler(void* arg, AsyncClient* client);
-        static void tcpServerTimeoutHandler(void* arg, AsyncClient* client, uint32_t time);
-        static void tcpServerConnectionHandler(void* arg, AsyncClient* client);
-        
-    public:
-        void begin()
+public:
+    void begin()
+    {
+        _server.begin(TELNET_PORT);
+        _server.setNoDelay(true);
+    };
+    void loop();
+    size_t write(uint8_t c)
+    {
+        if (_messageList.size() < TELNET_LOG_SIZE)
         {
-            if (!_dnsServer.start(TELNET_DNS_PORT, TELNET_SERVER_NAME, WiFi.localIP()))
-	            LOG_Println("\n failed to start dns service \n");
-            
-            AsyncServer* tcpServer = new AsyncServer(TELNET_TCP_PORT);
-            tcpServer->onClient(tcpServerConnectionHandler, tcpServer);
-            tcpServer->begin();
-        };
-        void loop()
-        {            
-            _dnsServer.processNextRequest();
-        };
-        size_t write(uint8_t c)
-        {
-            return 0;
+            _messageList.push((String)c);
         }
+        return 1;
+    }
+    size_t write(String str)
+    {
+        if (_messageList.size() < TELNET_LOG_SIZE)
+        {
+            _messageList.push(str);
+            return str.length();
+        }
+        return 0;
+    }
+    void write(int no)
+    {
+        if (_messageList.size() < TELNET_LOG_SIZE)
+        {
+            _messageList.push((String)no);
+        }
+    }
+    void write(uint32_t no)
+    {
+        if (_messageList.size() < TELNET_LOG_SIZE)
+        {
+            _messageList.push((String)no);
+        }
+    }
+
+    void write(boolean b)
+    {
+        if (b)
+        {
+            write((String) "true");
+        }
+        else
+        {
+            write((String) "false");
+        }
+    }
+
+    void println(String str)
+    {
+        write(str + '\n');
+    }
+
+    void println(uint32_t no)
+    {
+        write((String)no + '\n');
+    }
+    void println(boolean b)
+    {
+        write(b);
+    }
 };
 
 extern TelnetLogger TelnetLog;

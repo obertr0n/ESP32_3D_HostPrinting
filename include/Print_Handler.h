@@ -5,8 +5,8 @@
 #include <WString.h>
 #include <AsyncWebSocket.h>
 
-#include "GCode_Queue.h"
-
+#include "Message_Queue.h"
+#include "Log.h"
 
 enum PrintState
 {
@@ -38,12 +38,19 @@ enum AckState
     ACK_OUT_OF_SYNC = 5
 };
 
-class PrintHandler
+
+struct GCodeCmd
+{
+    String command;
+    uint32_t line;
+};
+
+class PrintHandlerClass
 {
 private:
     File _file;
     PrintState _state;
-    MsgQueue _sentPrintCmd;
+    MessageQueue<GCodeCmd> _sentPrintCmd;
 
     GCodeCmd _storedPrintCmd[HP_MAX_SAVED_CMD];
     uint32_t _storedCmdIdx;
@@ -180,7 +187,7 @@ private:
     void startPrint();
 
 public:
-    PrintHandler()
+    PrintHandlerClass()
     {
         _estCompPrc = 0;
         _prgTout = 0;
@@ -204,17 +211,17 @@ public:
         uint8_t checksum;
         String cmd;
         GCodeCmd msg;
-#if __DEBUG_MODE == ON
-        _serial->println("ac " + command);
-        _serial->print("is master ");
-        _serial->println(master);
-        _serial->print("has checksum ");
-        _serial->println(chksum);
-        _serial->print("connected ");
-        _serial->println(_printerConnected);
-        _serial->print("printing ");
-        _serial->println(isPrinting());
-#endif
+        
+        LOG_Println("ac " + command);
+        LOG_Println("is master ");
+        LOG_Println(master);
+        LOG_Println("has checksum ");
+        LOG_Println(chksum);
+        LOG_Println("connected ");
+        LOG_Println(_printerConnected);
+        LOG_Println("printing ");
+        LOG_Println(isPrinting());
+        
 
         /* only add a command if printer is connected */
         if (_printerConnected)
@@ -240,9 +247,7 @@ public:
                 {
                     cmd = command;
                 }
-#if __DEBUG_MODE == ON
-                _serial->println("sc " + cmd);
-#endif
+                LOG_Println("sc " + cmd);
 
                 msg.command = cmd;
 
@@ -309,15 +314,16 @@ public:
     void printbuff()
     {
 #if __DEBUG_MODE == ON
-        while (!_sentPrintCmd.isEmpty())
+        while (!_sentPrintCmd.empty())
         {
-            _serial->print("CMD: ");
-            _serial->println(_sentPrintCmd.pop().command);
+            LOG_Println("CMD: ");
+            LOG_Println(_sentPrintCmd.front().command);
+            _sentPrintCmd.pop();
         }
 #endif
     }
 };
 
-extern PrintHandler HP_Handler;
+extern PrintHandlerClass PrintHandler;
 
 #endif
