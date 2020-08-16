@@ -1,7 +1,9 @@
+#include <Update.h>
+
 #include "WebPrint_Server.h"
 #include "Print_Handler.h"
 #include "FileSys_Handler.h"
-#include <Update.h>
+#include "Util.h"
 
 using namespace std;
 
@@ -41,8 +43,7 @@ void WebPrintServer::loop()
 {
     if (WebPrintServer::_rebootRequired)
     {
-        delay(2000);
-        ESP.restart();
+        Util.sysReboot();
     }
 }
 

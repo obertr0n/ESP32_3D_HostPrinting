@@ -1,9 +1,10 @@
 #include <functional>
+#include <SPIFFS.h>
 
 #include "WiFi_Manager.h"
 #include "Config.h"
 #include "Log.h"
-#include "SPIFFS.h"
+#include "Util.h"
 
 using namespace std;
 
@@ -98,11 +99,11 @@ void WiFiManagerClass::webServerANYWifReq(AsyncWebServerRequest *request)
     else if(request->hasArg("mode"))
     {
         String mode = request->arg("mode");
-        if(mode = "ap")
+        if(mode == "ap")
         {
             _wifiMode = WIFI_AP;
         }
-        else if(mode = "sta")
+        else if(mode == "sta")
         {
             _wifiMode = WIFI_STA;
         }
@@ -110,7 +111,22 @@ void WiFiManagerClass::webServerANYWifReq(AsyncWebServerRequest *request)
     }
     else if(request->hasArg("connect"))
     {
+        String connStr = request->arg("connect");
+        LOG_Println(connStr);
 
+        int ssidIdx = connStr.indexOf("ssid:");
+        int passIdx = connStr.indexOf('pass:');
+
+        if(ssidIdx)
+        {
+            _ssid = connStr.substring(ssidIdx+5, passIdx);
+            LOG_Println(_ssid);
+        }
+        if(passIdx)
+        {
+            _pass = connStr.substring(passIdx+5);
+            LOG_Println(_pass);
+        }
     }
     request->send(code, "text/plain", result);
 }
@@ -182,6 +198,22 @@ void WiFiManagerClass::loopCaptive()
 {
     for(;;)
     {
+        if(_needConfig)
+        {
+            /* connected successfuly */
+            if(startSTA())
+            {
+                _wifiMode = WIFI_STA;
+
+                setStringPref(PREF_KEY_WIFI_SSID, _ssid);
+                setStringPref(PREF_KEY_WIFI_PASS, _pass);
+                setWifiModePref(PREF_KEY_WIFI_MODE, (uint8_t)_wifiMode);
+
+                /* setting saved, reboot */
+                Util.sysReboot();
+            }
+            _needConfig = false;
+        }
         _dns->processNextRequest();
     }
 }

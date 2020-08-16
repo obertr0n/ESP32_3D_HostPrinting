@@ -34,10 +34,13 @@ class UtilClass
             return "";
         };
 
-        // String getChipId()
-        // {
-
-        // };
+        void sysReboot()
+        {
+            /* allow some time for current operation to complete */
+            blinkReboot();
+            ESP.restart();
+            while(1) ;
+        };
 
         String getMac()
         {
@@ -54,7 +57,7 @@ class UtilClass
             return 100 * used / ESP.getHeapSize();
         };
 
-        void blinkStatus()
+        void blinkSuccess()
         {
             for(int i = 0; i < 5; i++)
             {
@@ -65,6 +68,16 @@ class UtilClass
             }
         };
     private:
+        void blinkReboot()
+        {
+            for(int i = 0; i < 10; i++)
+            {
+                digitalWrite(PIN_LED, LOW);
+                delay(100);
+                digitalWrite(PIN_LED, HIGH);
+                delay(50);
+            }
+        };
 };
 
 extern UtilClass Util;

@@ -10,7 +10,7 @@
 
 <body>
     <div id="container">
-        <p id="pmessage" style="text-align:center; font-size:17px;">Connect to a network or use AP mode only.</p>
+        <br/><br/>
         <div id="wiftable">
             <table id="twifi">
                 <thead id="twifihead">
@@ -30,26 +30,89 @@
                     </tr>
                 </thead>
                 <tbody id="twifibody">
+                    <!-- <tr id="filestr" onclick="connectTo('TP-LINK')">
+                        <td id="tdssid">TP-LINK</td>
+                        <td id="tdrssi">-68db</td>
+                        <td id="tdchannel">11</td>
+                        <td id="tdsecurity">WPA2_PSK</td>
+                    </tr>
+                    <tr id="filestr" onclick="connectTo('TP-LINK')">
+                        <td id="tdssid">TP-LINK</td>
+                        <td id="tdrssi">-68db</td>
+                        <td id="tdchannel">11</td>
+                        <td id="tdsecurity">WPA2_PSK</td>
+                    </tr>
+                    <tr id="filestr" onclick="connectTo('TP-LINK')">
+                        <td id="tdssid">TP-LINK</td>
+                        <td id="tdrssi">-68db</td>
+                        <td id="tdchannel">11</td>
+                        <td id="tdsecurity">WPA2_PSK</td>
+                    </tr>
+                    <tr id="filestr" onclick="connectTo('TP-LINK')">
+                        <td id="tdssid">TP-LINK</td>
+                        <td id="tdrssi">-68db</td>
+                        <td id="tdchannel">11</td>
+                        <td id="tdsecurity">WPA2_PSK</td>
+                    </tr>
+                    <tr id="filestr" onclick="connectTo('TP-LINK')">
+                        <td id="tdssid">TP-LINK</td>
+                        <td id="tdrssi">-68db</td>
+                        <td id="tdchannel">11</td>
+                        <td id="tdsecurity">WPA2_PSK</td>
+                    </tr> -->
                 </tbody>
             </table>
         </div>
         <!-- style="display: none;" -->
         <div id="conconfig">
-            <div id="wificonfig">
-                <label for="wifipass">Password: </label>
-                <input type="text" id="wifipass">
+        <br/>
+            <div id="passinput" class="passinput-background">
+                <div class="passinput-content">
+                    <span class="passclose">&times;</span>
+                    <p>Enter password for selected network.</p>
+                    <input type="text" id="wifipass">
+                    <div id="btn-ok" onclick="storePass()"><span>Ok</span></div>
+                </div>            
             </div>
-            <div id="savebtn" class="unselectable" unselectable="on" onclick="saveWifiConfig()">Save</div>
+            <div id="useaponly" class="tooltip" unselectable="on" onclick="useApMode()">
+                <span class="tooltiptext">Keep current AP and don't show this menu on reconnect.</span>
+                <input type="checkbox" id="iuseaponly">
+                <span>Use AP mode only</span>
+            </div>
         </div>
-        <div id="useaponly" class="unselectable" unselectable="on" onclick="useApMode()">Use AP mode only</div>
+        <div id="btn-save" class="tooltip" unselectable="on" onclick="saveWifiConfig()">
+            <span class="tooltiptext">Save the current settings.The module will reboot and reconnection is necessary.</span>
+            <span>Save Config</span>
+        </div>
     </div>
     
 <script>
     
     const tbwifi = document.getElementById('twifibody');
     const twifi = document.getElementById('twifi');
+    const apMode = document.getElementById('iuseaponly');
 
-    function refreshWifi() {
+    const passinput = document.getElementById("passinput");
+    const closebtn = document.getElementsByClassName("passclose")[0];
+    const wifipass = document.getElementById('wifipass');
+
+    var passText = "";
+    var ssidText = "";
+
+    closebtn.onclick = function() 
+    {
+        passinput.style.display = "none";
+        wifipass.value = "";
+    }
+
+    // When the user clicks anywhere outside of the modal, close it
+    // window.onclick = function(event) {
+    //     if (event.target == passinput) {
+    //         passinput.style.display = "none";
+    //     }
+    // }
+
+    function refreshWifi(){
         var xhr = new XMLHttpRequest();
         xhr.open("GET", "/reqwifi?refresh", true);
         xhr.onreadystatechange = function () {
@@ -62,11 +125,35 @@
         xhr.send();
     }
 
-    function connectTo(ssid)
-    {
+    function useApMode(){
 
     }
-    function createWifList(array, tbody) {
+
+    function saveWifiConfig(){        
+        var xhr = new XMLHttpRequest();          
+        xhr.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+                //todo handling for success
+            }
+        }
+        if(apMode.checked == true) {            
+            xhr.open("GET", "/reqwifi?mode=ap", true);
+        }
+        else {
+            xhr.open("GET", "/reqwifi?connect=ssid:" + ssidText + "pass:" + passText, true);
+        }
+        xhr.send();
+    }
+
+    function connectTo(ssid, sec){
+        passText = "";
+        ssidText = ssid;
+        wifipass.value = "";
+        if(sec != '0')
+            passinput.style.display = "block";
+    }
+
+    function createWifList(array, tbody){
         // remove all the existing table data
         for (var i = tbody.rows.length - 1; i >= 0; i--) {
             tbody.deleteRow(i);
@@ -74,7 +161,7 @@
         var body = "";
         for (var i = 0; i < array.length; i++) {
 
-            body += "<tr id='filestr' onclick=\"connectTo('" + array[i].ssid + "')\">";
+            body += "<tr id='filestr' onclick=\"connectTo('" + array[i].ssid + "', '" + array[i].type + "')\">";
             body += "<td id='tdssid'>" + array[i].ssid + "</td>";
             body += "<td id='tdrssi'>" + array[i].rssi + "db</td>";
             body += "<td id='tdchannel'>" + array[i].chan + "</td>";
@@ -84,6 +171,7 @@
         }
         tbody.innerHTML += body;
     }
+
     function getNetworkAuth(type)
     {
         var authType = "";
@@ -112,6 +200,11 @@
                 break;
         }
         return authType;
+    }
+    /* no massive security since it will stay local.. */
+    function storePass(){
+        passText = wifipass.value;
+        passinput.style.display = "none";
     }
 </script>
 </body>

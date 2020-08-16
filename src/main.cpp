@@ -39,7 +39,7 @@ void setup(void)
 
     LOG_Println("Init Done");
     /* signal successful init */
-    Util.blinkStatus();
+    Util.blinkSuccess();
 }
 
 void loop(void)
