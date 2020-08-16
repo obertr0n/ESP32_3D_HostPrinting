@@ -115,7 +115,7 @@ void WiFiManagerClass::webServerANYWifReq(AsyncWebServerRequest *request)
         LOG_Println(connStr);
 
         int ssidIdx = connStr.indexOf("ssid:");
-        int passIdx = connStr.indexOf('pass:');
+        int passIdx = connStr.indexOf("pass:");
 
         if(ssidIdx)
         {
