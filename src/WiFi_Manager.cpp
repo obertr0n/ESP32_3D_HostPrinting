@@ -111,11 +111,13 @@ void WiFiManagerClass::webServerANYWifReq(AsyncWebServerRequest *request)
     }
     else if(request->hasArg("ssid"))
     {
-        String ssid = request->arg("ssid");
+        _ssid = request->arg("ssid");
         LOG_Println(ssid);
-        if (ssid != "")
+        if (_ssid != "")
         {
-            _ssid = ssid;
+            _disable();
+            _needConfig = true;
+            _enable();
         }
         if(request->hasArg("pwd"))
         {
