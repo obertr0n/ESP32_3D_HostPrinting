@@ -72,7 +72,7 @@
                     <p>Enter password for selected network.</p>
                     <input type="text" id="wifipass">
                     <div id="btn-ok" onclick="storePass()"><span>Ok</span></div>
-                </div>            
+                </div>
             </div>
             <div id="useaponly" class="tooltip" unselectable="on" onclick="useApMode()">
                 <span class="tooltiptext">Keep current AP and don't show this menu on reconnect.</span>
@@ -85,9 +85,9 @@
             <span>Save Config</span>
         </div>
     </div>
-    
+
 <script>
-    
+
     const tbwifi = document.getElementById('twifibody');
     const twifi = document.getElementById('twifi');
     const apMode = document.getElementById('iuseaponly');
@@ -99,7 +99,7 @@
     var passText = "";
     var ssidText = "";
 
-    closebtn.onclick = function() 
+    closebtn.onclick = function()
     {
         passinput.style.display = "none";
         wifipass.value = "";
@@ -129,18 +129,18 @@
 
     }
 
-    function saveWifiConfig(){        
-        var xhr = new XMLHttpRequest();          
+    function saveWifiConfig(){
+        var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
                 //todo handling for success
             }
         }
-        if(apMode.checked == true) {            
+        if(apMode.checked == true) {
             xhr.open("GET", "/reqwifi?mode=ap", true);
         }
         else {
-            xhr.open("GET", "/reqwifi?connect=ssid:" + ssidText + "pass:" + passText, true);
+            xhr.open("GET", "/reqwifi?ssid=" + ssidText + "&pwd=" + passText, true);
         }
         xhr.send();
     }

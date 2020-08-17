@@ -109,23 +109,17 @@ void WiFiManagerClass::webServerANYWifReq(AsyncWebServerRequest *request)
         }
         setWifiModePref(PREF_KEY_WIFI_MODE, (uint8_t)_wifiMode);
     }
-    else if(request->hasArg("connect"))
+    else if(request->hasArg("ssid"))
     {
-        String connStr = request->arg("connect");
-        LOG_Println(connStr);
-
-        int ssidIdx = connStr.indexOf("ssid:");
-        int passIdx = connStr.indexOf('pass:');
-
-        if(ssidIdx)
+        String ssid = request->arg("ssid");
+        LOG_Println(ssid);
+        if (ssid != "")
         {
-            _ssid = connStr.substring(ssidIdx+5, passIdx);
-            LOG_Println(_ssid);
+            _ssid = ssid;
         }
-        if(passIdx)
+        if(request->hasArg("pwd"))
         {
-            _pass = connStr.substring(passIdx+5);
-            LOG_Println(_pass);
+            _pass = request->arg("pwd");
         }
     }
     request->send(code, "text/plain", result);
@@ -200,7 +194,7 @@ void WiFiManagerClass::loopCaptive()
     {
         if(_needConfig)
         {
-            /* connected successfuly */
+            /* connected successfully */
             if(startSTA())
             {
                 _wifiMode = WIFI_STA;
