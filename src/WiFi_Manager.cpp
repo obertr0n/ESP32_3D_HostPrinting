@@ -27,17 +27,17 @@ void WiFiManagerClass::begin()
         /* check if stored details are working OK */
         if(!startSTA())
         {
-            LOG_Println("Captive started");
-            startCaptive();
+            beginCaptive();
             loopCaptive();
         }
     }
 }
 
-void WiFiManagerClass::startCaptive()
+void WiFiManagerClass::beginCaptive()
 {
     /* if we are here, we either failed WiFi connection */
     /* start in AP mode */
+    LOG_Println("Captive starting...");
     startAP();
     _dns->setErrorReplyCode(DNSReplyCode::NoError);
     /* any request will be captured */
@@ -47,6 +47,7 @@ void WiFiManagerClass::startCaptive()
     _server->on("/", HTTP_GET, bind(&WiFiManagerClass::webServerGETRoot, this, placeholders::_1));
     _server->on("/www/captive.css", HTTP_GET, bind(&WiFiManagerClass::webServerGETLoadCSS, this, placeholders::_1));
     _server->on("/reqwifi", HTTP_ANY, bind(&WiFiManagerClass::webServerANYWifReq, this, placeholders::_1));
+
     _server->begin();
 }
 
@@ -109,24 +110,16 @@ void WiFiManagerClass::webServerANYWifReq(AsyncWebServerRequest *request)
         }
         setWifiModePref(PREF_KEY_WIFI_MODE, (uint8_t)_wifiMode);
     }
-    else if(request->hasArg("connect"))
+    else if(2 == request->args())
     {
-        String connStr = request->arg("connect");
-        LOG_Println(connStr);
-
-        int ssidIdx = connStr.indexOf("ssid:");
-        int passIdx = connStr.indexOf("pass:");
-
-        if(ssidIdx)
+        _ssid = request->arg((size_t)0);
+        LOG_Println(_ssid);
+        if (_ssid != "")
         {
-            _ssid = connStr.substring(ssidIdx+5, passIdx);
-            LOG_Println(_ssid);
+            _needConfig = true;
         }
-        if(passIdx)
-        {
-            _pass = connStr.substring(passIdx+5);
-            LOG_Println(_pass);
-        }
+        _pass = request->arg((size_t)1);
+        LOG_Println(_pass);
     }
     request->send(code, "text/plain", result);
 }
@@ -143,14 +136,19 @@ void WiFiManagerClass::startAP()
 bool WiFiManagerClass::startSTA()
 {
     const char* pass = NULL;
+    
+    LOG_Println("called with SSID " + _ssid + " and pass " + _pass);
 
     if (_pass != "")
     {
         pass = _pass.c_str();
     }
-    else if (_ssid != "")
+    
+    if (_ssid != "")
     {
-        WiFi.mode(WIFI_STA);
+        LOG_Println("using " + _ssid + " and pass " + _pass);
+        // WiFi.disconnect();
+        // WiFi.mode(WIFI_STA);
         WiFi.begin(_ssid.c_str(), pass);
 
         uint32_t timeout = millis() + CONNECTION_TIMEOUT;
@@ -164,10 +162,12 @@ bool WiFiManagerClass::startSTA()
         /* connection failed or timmedout */
         if(WiFi.status() == WL_DISCONNECTED)
         {
+            LOG_Println("Conn FAIL");
             return false;
         }
         else if(WiFi.status() == WL_CONNECTED)
         {
+            LOG_Println("Conn OK");
             return true;
         }
     }
@@ -200,7 +200,8 @@ void WiFiManagerClass::loopCaptive()
     {
         if(_needConfig)
         {
-            /* connected successfuly */
+            LOG_Println("test new connection");
+            /* connected successfully */
             if(startSTA())
             {
                 _wifiMode = WIFI_STA;

@@ -20,20 +20,18 @@
             </div>
         </div>
         <div id="navbuttons">
-            <button class="tablink" onclick="openPage('controltab', this, 'red')" id="defaultOpen">Control</button>
-            <button class="tablink" onclick="openPage('filestab', this, 'green')">Files</button>
-            <button class="tablink" onclick="openPage('settingstab', this, 'blue')">Settings</button>
-            <button class="tablink" onclick="openPage('abouttab', this, 'orange')">About</button>
+            <button class="tablink" onclick="openPage('controltab', this, 'rgb(85, 120, 141)')" >Control</button>
+            <button class="tablink" onclick="openPage('filestab', this, 'rgb(85, 120, 141)')">Files</button>
+            <button class="tablink" onclick="openPage('settingstab', this, 'rgb(85, 120, 141)')" id="defaultOpen">Settings</button>
+            <button class="tablink" onclick="openPage('abouttab', this, 'rgb(85, 120, 141)')">About</button>
         </div>
         <div id="filestab" class="tabcontent">
             <div id="ftable" class="lockonprint">
                 <div id="fileup">
                     <form class='form' enctype='multipart/form-data' id='uploadfrm' name='uploadform' method='POST'>
-                        <input type='file' name='userfile' id='inpfile' onchange='sub(this)' />
-                        <label id='linpfile' for='inpfile'>Browse...</label>
-                        <div id="uploadbtn">
-                            <input type='submit' class='button' value='Upload file' />
-                        </div>
+                        <input type='file' name='userfile' id='inpfile' onchange='sub(this, lInputFile)' />
+                        <label id='linpfile' for='inpfile'>Browse</label>
+                        <input type='submit' value='Upload' id = "uploadbtn"/>
                     </form>
                     <br><br>
                     <div id='prgtxt'></div>
@@ -589,17 +587,55 @@
                 </div>
             </div>
         </div>
+        <div id="settingstab" class="tabcontent">
+            <section class="settings-container">
+                <div id="stats">
+                    <div id="setting-header">Statistics</div>
+                    <div id="setting-content">Stats stats stats</div>
+                </div>
+            </section>
+            <section class="settings-container">
+                <div id="otaupload">
+                    <div id="setting-header">Firmware Upload</div>
+                    <div id="setting-content">
+                        <form method='POST' name='fwuploadform' enctype='multipart/form-data' id='fwuploadfrm'>
+                            <input type='file' name='fwuserfile' accept='.bin' id='fwinpfile' onchange='sub(this, lfwInputFile)'>
+                            <div style="text-align: center;">
+                                <label id='lfwinpfile' for='fwinpfile'>Browse</label>
+                            </div>
+                            <input type='submit' value='Update' id="fwinput">
+                            <br><br/>
+                            <div id='fwprgtxt'></div>
+                            <div id='fwprgbar'>
+                                <div id='fwiprgbar'> </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+            <section class="settings-container">
+                <div id="storage">
+                    <div id="setting-header">Storage Information</div>
+                    <div id="setting-content">Storage Storage Storage</div>
+                </div>
+            </section>
+        </div>
         <div id="abouttab" class="tabcontent">
             <h3>About is TBD</h3>
-        </div>
-        <div id="settingstab" class="tabcontent">
-            <h3>Settings is TBD</h3>
         </div>
     </div>
 
     <script>
         var jsonFiles;
         var websock;
+
+        const fwUploadForm = document.getElementById('fwuploadfrm');
+        const lfwInputFile = document.getElementById('lfwinpfile');
+        const fwInputFile = document.getElementById('fwinpfile');
+        const fwProgTxt = document.getElementById('fwprgtxt');
+        const fwProgBar = document.getElementById('fwiprgbar');
+
+        fwUploadForm.addEventListener('submit', uploadFw);
 
         const textArea = document.getElementById('cmdtext');
         const cmdText = document.getElementById('icommand');
@@ -654,18 +690,54 @@
             websock.onerror = function (evt) {
                 alert("WS Fail" + evt);
             }
+            ws.onclose = function(){
+                websock = null;
+                setTimeout(function(){start(websocketServerLocation)}, 1000);
+            };
             websock.onmessage = function (evt) {
                 processWs(evt)
             };
-            // var text = 'T:110.03 /190.00 B:50.68 /0.00 @:0 B@:0 W:?';
-            // updateTemperature(text);
-            // text = 'X:154.78 Y:115.00 Z:16.21 E:0.00 Count X:12382 Y:9200 Z:6485';
-            // updatePosition(text);
         }
 
-        function sub(obj) {
+        function uploadFw(ev) {
+            ev.preventDefault();
+            fwProgTxt.style.color = '#777';
+            if (fwInputFile.files.length === 0) {
+                fwProgTxt.innerHTML = 'Choose a file first';
+                fwProgTxt.style.color = 'red';
+                return;
+            }
+
+            var xhr = new window.XMLHttpRequest();
+            var formData = new FormData();
+
+            xhr.upload.onprogress = function(ev) {
+                if (ev.lengthComputable) {
+                    var per = ev.loaded / ev.total;
+                    fwProgTxt.innerHTML = 'Progress: ' + Math.round(per * 100) + '%';
+                    fwProgBar.style.width = Math.round(per * 100) + '%';
+                }
+            }
+            xhr.onloadend = function() {
+                if (xhr.status == 200) {
+                    fwProgTxt.innerHTML = 'Upload OK. ESP will reset in a moment...'
+                    fwProgTxt.style.color = 'green';
+                } else {
+                    fwProgTxt.innerHTML = 'Upload Failed'
+                    fwProgTxt.style.color = 'red';
+                }
+            };
+            var frmData = new FormData();
+            frmData.append('fwuserfile', fwInputFile.files[0])
+
+            xhr.open('POST', '/fwupload', true);
+            xhr.send(frmData);
+        }
+
+        function sub(obj, item) {
             var fileName = obj.value.split('\\');
-            lInputFile.innerHTML = '   ' + fileName[fileName.length - 1];
+            item.style.textAlign = 'left';
+            item.innerHTML = '   ' + fileName[fileName.length - 1];
         };
 
         /* PS=PrintingPG=10PR=X:154.78 Y:115.00 Z:16.02 E:0.00 Count X:12382 Y:9200 Z:6407 */
@@ -1081,7 +1153,7 @@
             isDown = false;
         }, true);
 
-        //position is based on screen position value 
+        //position is based on screen position value
         function movethumb(pos) {
             var p = pos + offset;
             var minpos = 0;
@@ -1112,7 +1184,7 @@
             }
         }
 
-        //position is based on range value 
+        //position is based on range value
         function movethumbat(thumbcursor, value) {
             var minvalue = 0;
             var maxvalue = 100;

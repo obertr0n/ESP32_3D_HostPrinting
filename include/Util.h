@@ -36,15 +36,15 @@ class UtilClass
 
         void sysReboot()
         {
-            /* allow some time for current operation to complete */
             blinkReboot();
+            /* allow some time for current operation to complete */
             ESP.restart();
             while(1) ;
         };
 
         String getMac()
         {
-            char macValue[17]; // Don't forget one byte for the terminating NULL...
+            char macValue[17];
             uint64_t mac = ESP.getEfuseMac();
             (void)sprintf(macValue, "%016llx", mac);
 

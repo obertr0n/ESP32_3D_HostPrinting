@@ -57,7 +57,7 @@ class WiFiManagerClass
         WiFiMode_t _wifiMode;
         bool _needConfig;
 
-        void startCaptive();
+        void beginCaptive();
         bool startSTA();
         void startAP();
         void loopCaptive();

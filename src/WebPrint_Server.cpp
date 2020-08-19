@@ -11,6 +11,7 @@ WebPrintServer PrintServer;
 
 void WebPrintServer::begin()
 {
+    LOG_Println("WebPrintServer starting...");
     /* websocket handler config */
     _webSocket->onEvent(bind(&WebPrintServer::webSocketEvent, this, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4, placeholders::_5, placeholders::_6));
     _webServer->addHandler(_webSocket);
@@ -34,9 +35,12 @@ void WebPrintServer::begin()
     /* firmware upload --> handle file upload */
     _webServer->on("/fwupload", HTTP_POST, bind(&WebPrintServer::webServerPOSTFirmwareUpdate, this, placeholders::_1),
             bind(&WebPrintServer::webServerPOSTUploadFirmware, this, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4, placeholders::_5, placeholders::_6));
-
+    
+    LOG_Println("WebServer begin...");
     /* start our async webServer */
     _webServer->begin();
+    
+    LOG_Println("WebServer started");
 }
 
 void WebPrintServer::loop()

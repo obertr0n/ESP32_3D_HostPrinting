@@ -13,6 +13,7 @@ class WebPrintServer
         AsyncWebServer* _webServer;
         AsyncWebSocket* _webSocket;
         File _printFile;
+        const String _uri = "/ws";
         bool _rebootRequired;
         int _uploadType;
 
@@ -30,8 +31,7 @@ class WebPrintServer
     public:
         WebPrintServer()
         {
-            String uri = "/ws";
-            _webSocket = new AsyncWebSocket(uri);
+            _webSocket = new AsyncWebSocket(_uri);
             _webServer = new AsyncWebServer(80);
 
             _uploadType = -1;

@@ -1,11 +1,11 @@
 body {
-    background: #3498db;
+    background: #1E2227;
     font-family: sans-serif;
     font-size: 14px;
     color: #777;
     margin: auto;
     padding-top: 10px;
-    width: 50%;
+    width: 768px;
 }
 
 #status{
@@ -69,12 +69,9 @@ body {
 
 #ttempsts{
     width: 100%;
-    /* float: right; */
 }
 
 #ttempsts td{
-    /* float: right; */
-    /* height: 25px; */
     color: red;
 }
 
@@ -110,7 +107,8 @@ body {
     padding: 2px;
 }
 
-#uploadfrm {
+#uploadfrm,
+#fwuploadfrm {
     width: 100%;
 }
 
@@ -118,46 +116,59 @@ body {
     float: right;
 }
 
-#inpfile {
+#inpfile,
+#fwinpfile {
     display: none;
 }
 
+
+#lfwinpfile,
 #linpfile {
-    width: 20%;
-    border: 1px solid #ddd;
-    border-radius: 6px;
+    margin: 5px 0px 0px 5px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    text-align: center;
     font-size: 18px;
     background-color: #f1f1f1;
-    /* text-align: left; */
-    float:left;
-    cursor: pointer;
-}
-
-#fwlinpfile
-{    font-size: 18px;
-    background-color: #f1f1f1;
-    /* text-align: left; */
     float:left;
     cursor: pointer;
     width: 50%;
 }
 
-#prgbar {
+#linpfile {
+    width: 40%;
+}
+
+#prgbar,
+#fwprgbar {
+    margin: 0px 5px 5px 5px;
     background-color: #f1f1f1;
     border-radius: 2px
 }
 
-#iprgbar {
+#iprgbar,
+#fwiprgbar {
+    margin: 0px 5px 5px 5px;
     background-color: #34db6c;
     width: 0%;
     height: 10px
 }
 
-.button {
-    background: #f1f1f1;
-    color: #777;
+input[type=submit],
+#cmdSendBtn {
+    margin: 5px 5px 0px 0px;
+    padding: 0px 15px;
+    border: 0 none;
     cursor: pointer;
-    font-size: 15px;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+    background-color: #f1f1f1;
+    font-size: 18px;
+}
+
+#fwinput {
+    float: right;
 }
 
 #refresh {
@@ -169,12 +180,34 @@ body {
     float: left;
 }
 
-#otaupload {
-    position: relative;
-    width: 50%;
+.settings-container {
+    width: 100%;
+}
+
+#setting-header {
+    width: 100%;
+    font-size: 20px;
+    text-decoration: underline;
+    text-align: center;
+}
+
+#setting-content {
+    margin-top: 10px;
+}
+
+#otaupload,
+#stats,
+#storage {
+    float: left;
+    width: 49%;
+    height: 100px;
+    margin-top: 10px;
     background-color: #FFFFFF;
     border-radius: 5px;
-    padding: 15px;
+}
+
+#stats {
+    float: right;
 }
 
 #ftable {
@@ -246,7 +279,7 @@ body {
     float: right;
 }
 
-#tddelete{    
+#tddelete{
     color: red;
     cursor: pointer;
 }
@@ -274,8 +307,7 @@ body {
     width: 48.5%;
 }
 
-#truserinp td{
-    /* width:25%; */
+#truserinp td {
 }
 
 .iucmd{
@@ -292,7 +324,7 @@ body {
     width: 99.7%;
 }
 #cmdarea label{
-  font-weight: 600;  
+  font-weight: 600;
 }
 
 #cmdtext {
@@ -303,23 +335,15 @@ body {
 }
 
 #icommand {
-    width: 80%;
+    width: 75%;
+}
+
+#cmdSendBtn {
+    float: right;
 }
 
 #lcommand {
     color: lightcoral;
-}
-
-#cmdSendBtn {
-    background-color: #555;
-    color: white;
-    float: right;
-    border: none;
-    outline: none;
-    cursor: pointer;
-    padding: 3px 10px;
-    font-size: 14px;
-    /* width: 25%; */
 }
 
 *.unselectable {
@@ -330,7 +354,7 @@ body {
     user-select: none;
  }
 
-@media screen and (max-width:800px) {
+@media screen and (max-width:768px) {
     .column {
         width: 100%;
     }
