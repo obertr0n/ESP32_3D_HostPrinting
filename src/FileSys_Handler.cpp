@@ -86,7 +86,8 @@ void FSHandler::listDir(const char *dirname, uint8_t levels)
 
 String FSHandler::jsonifyDir(String dir, String ext)
 {
-    String jsonString;
+    String jsonString = "{\"files\":[]}";
+    bool found = false;
 
     if (_state != NOT_INIT)
     {
@@ -94,7 +95,7 @@ String FSHandler::jsonifyDir(String dir, String ext)
         if (!root || !root.isDirectory())
         {
             LOG_Println("invalid dir");
-            return "";
+            return jsonString;
         }
 
         File file = root.openNextFile();
@@ -110,19 +111,26 @@ String FSHandler::jsonifyDir(String dir, String ext)
                 {
                     jsonString += "{\"filename\":\"" + fileName + "\"," + // JSON requires double quotes
                                   "\"size\":\"" + (String)file.size() + "\"},";
+                    found = true;
                 }
             }
             file = root.openNextFile();
         }
-        jsonString[jsonString.length() - 1] = ']';
-        jsonString += "}";
+        if(found)
+        {
+            jsonString[jsonString.length() - 1] = ']';
+            jsonString += "}";
+        }
+        else
+        {
+            jsonString = "{\"files\":[]}";
+        }
         
         LOG_Println(jsonString);
 
         return jsonString;
     }
-    else
-        return "";
+    return jsonString;
 }
 
 void FSHandler::writeBytes(String &path, const uint8_t *data, size_t len)
