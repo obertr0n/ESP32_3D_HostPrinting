@@ -7,3 +7,5 @@
 .vscode/extensions.json
 .vscode/settings.json
 .gcode/*.*
+tools/decode_ex.bat
+tools/ex.log
