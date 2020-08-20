@@ -22,7 +22,7 @@ void setup(void)
     Util.begin();
 
     /* setup the WiFi connection */
-    /* either connect to an already saved network create a portal for setting it up */
+    /* either connect to an already saved network or create a portal for setting it up */
     WiFiManager.begin();
 
     /* init file handler */
