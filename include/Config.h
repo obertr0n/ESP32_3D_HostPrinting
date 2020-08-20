@@ -6,7 +6,7 @@
 
 /* section soft AP */
 #define AP_DEFAULT_SSID         "ESPHostPrinting"
-#define AP_DEFAULT_PASS         "1234uiop"
+#define AP_DEFAULT_PASS         "welcomeESP"
 
 /* section serial */
 #define PRINTER_SERIAL          Serial
@@ -26,8 +26,8 @@
 
 /* section buffers */
 
-#define HP_MAX_SAVED_CMD        200u
-#define HP_CMD_QUEUE_SIZE       100u
+#define HP_MAX_SAVED_CMD        100u
+#define HP_CMD_QUEUE_SIZE       50u
 #define HP_CMD_SLOTS            3u
 #define HP_PRELOAD_CMD_NUM      50
 
