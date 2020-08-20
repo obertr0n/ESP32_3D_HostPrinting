@@ -26,8 +26,8 @@
 
 /* section buffers */
 
-#define HP_MAX_SAVED_CMD        100u
-#define HP_CMD_QUEUE_SIZE       50u
+#define HP_MAX_SAVED_CMD        150u
+#define HP_CMD_QUEUE_SIZE       100u
 #define HP_CMD_SLOTS            3u
 #define HP_PRELOAD_CMD_NUM      50
 
