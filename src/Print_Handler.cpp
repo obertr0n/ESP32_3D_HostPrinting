@@ -12,7 +12,9 @@ const String PrintHandlerClass::EXTRUDER_CNT_STR = "EXTRUDER_COUNT:";
 void PrintHandlerClass::begin(HardwareSerial* port)
 {    
     _serial = port;
+    #if OFF == __DEBUG_MODE
     _serial->begin(BAUD_RATES[0]);
+    #endif
 }
 
 void PrintHandlerClass::preBuffer()
@@ -180,6 +182,7 @@ void PrintHandlerClass::updateWSState()
         outStr = "PS=" + getState();
         outStr += "PG=" + (String)_estCompPrc;
         outStr += "PR=" + _serialReply;
+        
         PrintServer.write(outStr);
 
         _serialReply = "";
@@ -392,10 +395,8 @@ void PrintHandlerClass::loopTx()
         }        
         else
         {
-            /* request abort, machine reset IS required */
-            // write("M112");
- 
-            _sentPrintCmd.clear();
+            /* request abort, machine reset will be required */
+            write("M112");
             _state = PH_STATE_CANCELED;
         }
     break;
