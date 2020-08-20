@@ -7,7 +7,7 @@
 
 enum FSHandlerState
 {
-    NO_INIT,
+    NOT_INIT,
     IDLE,
     WRITING,
     ERROR,
@@ -40,9 +40,10 @@ public:
     {
         return (SD.totalBytes() - SD.usedBytes());
     }
+
     FSHandlerState getWriteState() { return _state; };
-    FSStorageType getStorageType() { return _storageType; }
-    uint8_t maxPathLen() { return _pathMaxLen; }
+    FSStorageType getStorageType() { return _storageType; };
+    uint8_t maxPathLen() { return _pathMaxLen; };
     String jsonifyDir(String dir, String ext);
     String jsonifyDir(String ext)
     {
@@ -58,16 +59,19 @@ public:
 
         return jsonifyDir(dir, ext);
     };
+
     void listDir(const char *dirname, uint8_t levels);
     void writeBytes(String &path, const uint8_t *data, size_t len);
     bool exists(String &path)
     {
         return _FSRoot->exists(path);
-    }
+    };
+
     bool remove(String &path)
     {
         return _FSRoot->remove(path);
-    }
+    };
+
     File openFile(String &path, const char *mode)
     {
         String filePath = path;

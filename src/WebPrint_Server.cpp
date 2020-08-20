@@ -19,9 +19,9 @@ void WebPrintServer::begin()
     /* serve css file */
     _webServer->on("/www/style.css", HTTP_GET, bind(&WebPrintServer::webServerGETLoadCSS, this, placeholders::_1));
     /* serve html index */
-    _webServer->on("/", HTTP_GET, bind(&WebPrintServer::webServerGETDefault, this, placeholders::_1));
+    _webServer->on("/", HTTP_GET, bind(&WebPrintServer::webServerDefault, this, placeholders::_1));
     /* handle file upload */
-    _webServer->on("/", HTTP_POST, bind(&WebPrintServer::webServerPOSTDefault, this, placeholders::_1),
+    _webServer->on("/", HTTP_POST, bind(&WebPrintServer::webServerDefault, this, placeholders::_1),
             bind(&WebPrintServer::webServerPOSTUploadFile, this, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4, placeholders::_5, placeholders::_6));
     /* handle PrintHandler request */
     _webServer->on("/request", HTTP_ANY, bind(&WebPrintServer::webServerANYGcodeRequest, this, placeholders::_1));
@@ -30,12 +30,10 @@ void WebPrintServer::begin()
     /* handle AbortPrint requests */
     _webServer->on("/abortPrint", HTTP_GET, bind(&WebPrintServer::webServerGETAbortPrint, this, placeholders::_1));
 
-    /* firmware upload --> serve html index */
-    _webServer->on("/fwupload", HTTP_GET, bind(&WebPrintServer::webServerGETFirmwareUpdate, this, placeholders::_1));
     /* firmware upload --> handle file upload */
-    _webServer->on("/fwupload", HTTP_POST, bind(&WebPrintServer::webServerPOSTFirmwareUpdate, this, placeholders::_1),
+    _webServer->on("/fwupload", HTTP_POST, bind(&WebPrintServer::webServerDefault, this, placeholders::_1),
             bind(&WebPrintServer::webServerPOSTUploadFirmware, this, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4, placeholders::_5, placeholders::_6));
-    
+
     LOG_Println("WebServer begin...");
     /* start our async webServer */
     _webServer->begin();
@@ -73,18 +71,16 @@ void WebPrintServer::webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient
 
 void WebPrintServer::webServerGETLoadCSS(AsyncWebServerRequest *request)
 {
-    request->send(SPIFFS, "/www/style.css", "text/css");
+    AsyncWebServerResponse* response = request->beginResponse(SPIFFS, "/www/style.css.gz", "text/css");
+    response->addHeader("Content-Encoding", "gzip");
+    request->send(response);
 }
 
-void WebPrintServer::webServerGETDefault(AsyncWebServerRequest *request)
+void WebPrintServer::webServerDefault(AsyncWebServerRequest *request)
 {
-    request->send(SPIFFS, "/www/index.html", "text/html");
-}
-
-void WebPrintServer::webServerPOSTDefault(AsyncWebServerRequest *request)
-{
-    /* this will get called after the req is completed */
-    request->send(SPIFFS, "/www/index.html", "text/html");
+    AsyncWebServerResponse* response = request->beginResponse(SPIFFS, "/www/index.html.gz", "text/html");
+    response->addHeader("Content-Encoding", "gzip");
+    request->send(response);
 }
 
 void WebPrintServer::webServerPOSTUploadFile(AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final)
@@ -99,8 +95,6 @@ void WebPrintServer::webServerPOSTUploadFile(AsyncWebServerRequest *request, con
         if (!index)
         {
             String filePath = "/gcode/" + filename;
-
-            LOG_Println(filePath);
             request->_tempFile = FileHandler.openFile(filePath, FILE_WRITE);
         }
 
@@ -110,7 +104,7 @@ void WebPrintServer::webServerPOSTUploadFile(AsyncWebServerRequest *request, con
         /* final chunk */
         if (final)
         {
-            /* close the file */
+            /* close the file */            
             request->_tempFile.close();
         }
     }
@@ -201,18 +195,6 @@ void WebPrintServer::webServerGETAbortPrint(AsyncWebServerRequest *request)
     }
 }
 
-void WebPrintServer::webServerGETFirmwareUpdate(AsyncWebServerRequest *request)
-{
-    LOG_Println("req /fwupload");
-    request->send(SPIFFS, "/www/otaupload.html", "text/html");
-}
-
-void WebPrintServer::webServerPOSTFirmwareUpdate(AsyncWebServerRequest *request)
-{
-    LOG_Println("POST /fwupload");
-    request->send(SPIFFS, "/www/otaupload.html", "text/html");
-}
-
 void WebPrintServer::webServerPOSTUploadFirmware(AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final)
 {
     if (!index)
@@ -243,7 +225,7 @@ void WebPrintServer::webServerPOSTUploadFirmware(AsyncWebServerRequest *request,
 
 void WebPrintServer::write(String& text)
 {
-    if (_webSocket->availableForWriteAll())
+    if (_webSocket->count() > 0)
     {
         _webSocket->textAll(text);
     }

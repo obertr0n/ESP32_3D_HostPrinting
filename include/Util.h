@@ -38,6 +38,7 @@ class UtilClass
         {
             blinkReboot();
             /* allow some time for current operation to complete */
+            delay(2000);
             ESP.restart();
             while(1) ;
         };

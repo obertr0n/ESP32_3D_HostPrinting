@@ -14,10 +14,11 @@ class WiFiManagerClass
             _server = new AsyncWebServer(80);
             _dns = new DNSServer();
 
-            _softApIP = IPAddress(8, 8, 8, 8);
+            _softApIP = IPAddress(192, 168, 0, 150);
             _softApSnet = IPAddress(255,255,255,0);
 
             _needConfig = false;
+            _doReset = false;
             _ssid = "";
             _pass = "";
         };
@@ -42,7 +43,7 @@ class WiFiManagerClass
 
         const uint16_t DNS_PORT             = 53;
         /* timeout for connecting to a network */
-        const uint32_t CONNECTION_TIMEOUT   = 20*1000;
+        const uint32_t CONNECTION_TIMEOUT   = 10*1000;
 
 
         Preferences _pref;
@@ -56,6 +57,7 @@ class WiFiManagerClass
         String _pass;
         WiFiMode_t _wifiMode;
         bool _needConfig;
+        bool _doReset;
 
         void beginCaptive();
         bool startSTA();

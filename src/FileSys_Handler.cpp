@@ -88,11 +88,12 @@ String FSHandler::jsonifyDir(String dir, String ext)
 {
     String jsonString;
 
-    if (_state != NO_INIT)
+    if (_state != NOT_INIT)
     {
         File root = _FSRoot->open(dir);
         if (!root || !root.isDirectory())
         {
+            LOG_Println("invalid dir");
             return "";
         }
 

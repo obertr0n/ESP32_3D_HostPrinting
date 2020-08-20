@@ -5,7 +5,7 @@
 
 <head>
     <link rel="stylesheet" type="text/css" href="/www/style.css">
-    <!-- <link rel="stylesheet" type="text/css" href="style.css"> -->
+    <link rel="stylesheet" type="text/css" href="style.css">
     <title>ESP32 HostPrint</title>
 </head>
 
@@ -20,9 +20,9 @@
             </div>
         </div>
         <div id="navbuttons">
-            <button class="tablink" onclick="openPage('controltab', this, 'rgb(85, 120, 141)')" >Control</button>
+            <button class="tablink" onclick="openPage('controltab', this, 'rgb(85, 120, 141)')" id="defaultOpen">Control</button>
             <button class="tablink" onclick="openPage('filestab', this, 'rgb(85, 120, 141)')">Files</button>
-            <button class="tablink" onclick="openPage('settingstab', this, 'rgb(85, 120, 141)')" id="defaultOpen">Settings</button>
+            <button class="tablink" onclick="openPage('settingstab', this, 'rgb(85, 120, 141)')">Settings</button>
             <button class="tablink" onclick="openPage('abouttab', this, 'rgb(85, 120, 141)')">About</button>
         </div>
         <div id="filestab" class="tabcontent">
@@ -674,7 +674,7 @@
             getDirs();
         }, false);
         window.onbeforeunload = function() {
-            websock.onclose = function () {}; // disable onclose handler first
+            websock.onclose = function () {};
             websock.close();
         };
         function Command_OnEnter(ev) {
@@ -686,11 +686,12 @@
 
         function initws() {
             textArea.value = "";
-            websock = new WebSocket('ws://' + window.location.hostname + '/ws');
+            const websocketServerLocation = 'ws://' + window.location.hostname + '/ws';
+            websock = new WebSocket(websocketServerLocation);
             websock.onerror = function (evt) {
                 alert("WS Fail" + evt);
             }
-            ws.onclose = function(){
+            websock.onclose = function(){
                 websock = null;
                 setTimeout(function(){start(websocketServerLocation)}, 1000);
             };
@@ -714,16 +715,17 @@
             xhr.upload.onprogress = function(ev) {
                 if (ev.lengthComputable) {
                     var per = ev.loaded / ev.total;
+                    console.log(per);
                     fwProgTxt.innerHTML = 'Progress: ' + Math.round(per * 100) + '%';
                     fwProgBar.style.width = Math.round(per * 100) + '%';
                 }
             }
             xhr.onloadend = function() {
                 if (xhr.status == 200) {
-                    fwProgTxt.innerHTML = 'Upload OK. ESP will reset in a moment...'
+                    fwProgTxt.innerHTML = 'Upload OK!'
                     fwProgTxt.style.color = 'green';
                 } else {
-                    fwProgTxt.innerHTML = 'Upload Failed'
+                    fwProgTxt.innerHTML = 'Upload Failed!'
                     fwProgTxt.style.color = 'red';
                 }
             };

@@ -53,7 +53,7 @@ void WiFiManagerClass::beginCaptive()
 
 void WiFiManagerClass::webServerHandleNotFound(AsyncWebServerRequest *request)
 {
-    LOG_Println("In not found");
+    LOG_Println("In not found" + request->url());
     if(request->url() != "/")
     {
         AsyncWebServerResponse* response = request->beginResponse(302, "text/plain", "");
@@ -64,14 +64,16 @@ void WiFiManagerClass::webServerHandleNotFound(AsyncWebServerRequest *request)
 
 void WiFiManagerClass::webServerGETLoadCSS(AsyncWebServerRequest *request)
 {
-    LOG_Println("Serve css");
-    request->send(SPIFFS, "/www/captive.css", "text/css");
+    AsyncWebServerResponse* response = request->beginResponse(SPIFFS, "/www/captive.css.gz", "text/css");
+    response->addHeader("Content-Encoding", "gzip");
+    request->send(response);
 }
 
 void WiFiManagerClass::webServerGETRoot(AsyncWebServerRequest *request)
 {
-    LOG_Println("Serve root");
-    request->send(SPIFFS, "/www/captive.html", "text/html");
+    AsyncWebServerResponse* response = request->beginResponse(SPIFFS, "/www/captive.html.gz", "text/html");
+    response->addHeader("Content-Encoding", "gzip");
+    request->send(response);
 }
 
 void WiFiManagerClass::webServerANYWifReq(AsyncWebServerRequest *request)
@@ -103,23 +105,26 @@ void WiFiManagerClass::webServerANYWifReq(AsyncWebServerRequest *request)
         if(mode == "ap")
         {
             _wifiMode = WIFI_AP;
+            _doReset = true;
         }
         else if(mode == "sta")
         {
             _wifiMode = WIFI_STA;
         }
         setWifiModePref(PREF_KEY_WIFI_MODE, (uint8_t)_wifiMode);
+        code = 200;
+        result = "OK";
     }
     else if(2 == request->args())
     {
         _ssid = request->arg((size_t)0);
-        LOG_Println(_ssid);
         if (_ssid != "")
         {
             _needConfig = true;
         }
         _pass = request->arg((size_t)1);
-        LOG_Println(_pass);
+        code = 200;
+        result = "OK";
     }
     request->send(code, "text/plain", result);
 }
@@ -210,10 +215,16 @@ void WiFiManagerClass::loopCaptive()
                 setStringPref(PREF_KEY_WIFI_PASS, _pass);
                 setWifiModePref(PREF_KEY_WIFI_MODE, (uint8_t)_wifiMode);
 
-                /* setting saved, reboot */
-                Util.sysReboot();
+                /* setting saved, reset */
+                _doReset = true;
             }
             _needConfig = false;
+        }
+
+        if(_doReset)
+        {
+            _doReset = false;
+            Util.sysReboot();
         }
         _dns->processNextRequest();
     }

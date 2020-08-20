@@ -19,15 +19,12 @@ class WebPrintServer
 
         void webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *payload, size_t len);
         void webServerGETLoadCSS(AsyncWebServerRequest *request);
-        void webServerGETDefault(AsyncWebServerRequest *request);
-        void webServerPOSTDefault(AsyncWebServerRequest *request);
+        void webServerDefault(AsyncWebServerRequest *request);
         void webServerPOSTUploadFile(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final);
         void webServerANYGcodeRequest(AsyncWebServerRequest *request);
         void webServerGETListDirectories(AsyncWebServerRequest *request);
         void webServerGETAbortPrint(AsyncWebServerRequest *request);
-        void webServerGETFirmwareUpdate(AsyncWebServerRequest *request);
-        void webServerPOSTFirmwareUpdate(AsyncWebServerRequest *request);
-        void webServerPOSTUploadFirmware(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final);
+        void webServerPOSTUploadFirmware(AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final);
     public:
         WebPrintServer()
         {
