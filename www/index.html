@@ -589,15 +589,16 @@
         </div>
         <div id="settingstab" class="tabcontent">
             <section class="settings-container">
-                <div id="stats">
+                <div class="setting" id="settings-stats">
                     <div id="setting-header">Statistics</div>
                     <div id="setting-content">Stats stats stats</div>
                 </div>
             </section>
             <section class="settings-container">
-                <div id="otaupload">
-                    <div id="setting-header">Firmware Upload</div>
+                <div class="setting" id="settings-device">
+                    <div id="setting-header">Device Settings</div>
                     <div id="setting-content">
+                        <div id="subheader">Firmware update</div>
                         <form method='POST' name='fwuploadform' enctype='multipart/form-data' id='fwuploadfrm'>
                             <input type='file' name='fwuserfile' accept='.bin' id='fwinpfile' onchange='sub(this, lfwInputFile)'>
                             <div style="text-align: center;">
@@ -610,11 +611,16 @@
                                 <div id='fwiprgbar'> </div>
                             </div>
                         </form>
+                        <div id="spacer-vertical"></div>
+                        <div id="subheader">WiFi settings</div>
+                        <div id="wifisettings">
+                            <div id="wifireset" onclick="requestWifiReset()">Reset WiFi</div>
+                        </div>
                     </div>
                 </div>
             </section>
             <section class="settings-container">
-                <div id="storage">
+                <div class="setting" id="settings-storage">
                     <div id="setting-header">Storage Information</div>
                     <div id="setting-content">Storage Storage Storage</div>
                 </div>
@@ -677,6 +683,7 @@
             websock.onclose = function () {};
             websock.close();
         };
+
         function Command_OnEnter(ev) {
             if (ev.key === "Enter") {
                 ev.preventDefault();
@@ -915,7 +922,7 @@
             // // var text = '{"files":[{"filename":"/gcode/100mm_level_block.gcode","size":"559276"}]}';
             // jsonFiles = JSON.parse(text);
 
-            // createTable(jsonFiles.files, tbSdFiles);
+            // createFileTable(jsonFiles.files, tbSdFiles);
 
             // tSdFiles.style.display = "table";
 
@@ -926,14 +933,14 @@
 
                     jsonFiles = JSON.parse(this.responseText);
 
-                    createTable(jsonFiles.files, tbSdFiles);
+                    createFileTable(jsonFiles.files, tbSdFiles);
                     tSdFiles.style.display = "table";
                 }
             }
             xhr.send();
         }
 
-        function createTable(array, table) {
+        function createFileTable(array, table) {
             // remove all the existing table data
             for (var i = table.rows.length - 1; i >= 0; i--) {
                 table.deleteRow(i);
@@ -978,6 +985,14 @@
                     }
                 }
                 xhr.open("GET", "/request?deletef=" + name, true);
+                xhr.send();
+            }
+        }
+
+        function requestWifiReset() {
+            if (confirm("This will reset WiFi settings. Proceed?")) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("GET", "/resetWifi", true);
                 xhr.send();
             }
         }

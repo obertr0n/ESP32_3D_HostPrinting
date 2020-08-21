@@ -23,32 +23,38 @@ public:
     bool push(T const& elem);
     void pop();
     T front();
-    uint32_t size() 
+
+    uint32_t capacity() 
     { 
         return HP_CMD_QUEUE_SIZE; 
     };
-    uint32_t length() 
+
+    uint32_t size() 
     { 
         return HP_CMD_QUEUE_SIZE - slots(); 
     };
-    bool full() 
+
+    bool isfull() 
     { 
         return _full; 
     };
-    bool empty() 
+
+    bool isempty() 
     { 
         return (!_full && (_tail == _head)); 
     };
+
     void clear() 
     {
         _tail = 0;
         _head = 0;
-    }
+    };
+
     uint32_t slots()
     {
         uint32_t freePos = 0;
 
-        if(empty())
+        if(isempty())
         {
             freePos = HP_CMD_QUEUE_SIZE;
         }
@@ -87,7 +93,7 @@ template <class T>
 T MessageQueue<T>::front()
 {
     T ret;
-    if(_tail != _head)
+    if(!isempty())
     {
         ret = _msgQueue[_tail];
     }

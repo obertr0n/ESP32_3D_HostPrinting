@@ -3,6 +3,7 @@
 #include "WebPrint_Server.h"
 #include "Print_Handler.h"
 #include "FileSys_Handler.h"
+#include "WiFi_Manager.h"
 #include "Util.h"
 
 using namespace std;
@@ -29,11 +30,11 @@ void WebPrintServer::begin()
     _webServer->on("/dirs", HTTP_GET, bind(&WebPrintServer::webServerGETListDirectories, this, placeholders::_1));
     /* handle AbortPrint requests */
     _webServer->on("/abortPrint", HTTP_GET, bind(&WebPrintServer::webServerGETAbortPrint, this, placeholders::_1));
-
     /* firmware upload --> handle file upload */
     _webServer->on("/fwupload", HTTP_POST, bind(&WebPrintServer::webServerDefault, this, placeholders::_1),
             bind(&WebPrintServer::webServerPOSTUploadFirmware, this, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4, placeholders::_5, placeholders::_6));
-
+    _webServer->on("/resetWifi", HTTP_GET, bind(&WebPrintServer::webServerGETResetWifiSettings, this, placeholders::_1));
+    
     LOG_Println("WebServer begin...");
     /* start our async webServer */
     _webServer->begin();
@@ -46,6 +47,14 @@ void WebPrintServer::loop()
     if (WebPrintServer::_rebootRequired)
     {
         Util.sysReboot();
+    }
+}
+
+void WebPrintServer::write(String& text)
+{
+    if (_webSocket->count() > 0 && _webSocket->availableForWriteAll())
+    {
+        _webSocket->textAll(text);
     }
 }
 
@@ -62,8 +71,8 @@ void WebPrintServer::webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient
     else if (type == WS_EVT_DATA)
     {
         char data[124];
-        memcpy(data, payload, len);
-        data[len] = '\0';
+        memcpy(data, payload, 124);
+        data[123] = '\0';
 
         LOG_Println("payload: " + (String)data + ", len: " + (String)len);
     }
@@ -195,10 +204,18 @@ void WebPrintServer::webServerGETAbortPrint(AsyncWebServerRequest *request)
     }
 }
 
+void WebPrintServer::webServerGETResetWifiSettings(AsyncWebServerRequest *request)
+{
+    WiFiManager.resetSetting();
+    request->send(200, "text/plain", "Ok");
+}
+
 void WebPrintServer::webServerPOSTUploadFirmware(AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final)
 {
     if (!index)
     {
+        /* fresh start */
+        Update.abort();
         /* decide which section should be used */
         WebPrintServer::_uploadType = (filename.indexOf("spiffs") > -1) ? U_SPIFFS : U_FLASH;
         /* start with MAX size */
@@ -215,18 +232,13 @@ void WebPrintServer::webServerPOSTUploadFirmware(AsyncWebServerRequest *request,
     /* last frame of the data */
     if (final)
     {
-        /* reboot only if program flash upload */
-        if (Update.end(true) && (WebPrintServer::_uploadType == U_FLASH))
+        if(UPDATE_ERROR_OK == Update.getError())
         {
-            WebPrintServer::_rebootRequired = true;
+            /* reboot only if program flash upload */
+            if (Update.end(true) && (WebPrintServer::_uploadType == U_FLASH))
+            {
+                WebPrintServer::_rebootRequired = true;
+            }
         }
-    }
-}
-
-void WebPrintServer::write(String& text)
-{
-    if (_webSocket->count() > 0)
-    {
-        _webSocket->textAll(text);
     }
 }

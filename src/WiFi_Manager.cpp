@@ -33,12 +33,26 @@ void WiFiManagerClass::begin()
     }
 }
 
+void WiFiManagerClass::resetSetting()
+{
+    /* just by setting this to STA mode, we should restart the portal */
+    _wifiMode = WIFI_STA;
+    setWifiModePref(PREF_KEY_WIFI_MODE, (uint8_t)_wifiMode);
+
+    /* now we  reboot */
+    Util.sysReboot();
+};
+
 void WiFiManagerClass::beginCaptive()
 {
     /* if we are here, we either failed WiFi connection */
     /* start in AP mode */
     LOG_Println("Captive starting...");
     startAP();
+    
+    _server = new AsyncWebServer(80);
+    _dns = new DNSServer();
+
     _dns->setErrorReplyCode(DNSReplyCode::NoError);
     /* any request will be captured */
     _dns->start(DNS_PORT, "*", WiFi.softAPIP());
@@ -118,7 +132,7 @@ void WiFiManagerClass::webServerANYWifReq(AsyncWebServerRequest *request)
     else if(2 == request->args())
     {
         _ssid = request->arg((size_t)0);
-        if (_ssid != "")
+        if (_ssid.length() > 0)
         {
             _needConfig = true;
         }
@@ -144,16 +158,16 @@ bool WiFiManagerClass::startSTA()
     
     LOG_Println("called with SSID " + _ssid + " and pass " + _pass);
 
-    if (_pass != "")
+    if (_pass.length() > 0)
     {
         pass = _pass.c_str();
     }
     
-    if (_ssid != "")
+    if (_ssid.length() > 0)
     {
         LOG_Println("using " + _ssid + " and pass " + _pass);
-        // WiFi.disconnect();
-        // WiFi.mode(WIFI_STA);
+
+        WiFi.mode(WIFI_STA);
         WiFi.begin(_ssid.c_str(), pass);
 
         uint32_t timeout = millis() + CONNECTION_TIMEOUT;

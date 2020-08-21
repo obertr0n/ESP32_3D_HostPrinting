@@ -20,7 +20,7 @@ void PrintHandlerClass::begin(HardwareSerial* port)
 void PrintHandlerClass::preBuffer()
 {
     String line;
-    while (_sentPrintCmd.slots() > HP_CMD_SLOTS)
+    while (_cmdToSend.slots() > HP_CMD_SLOTS)
     {
         if (_file.available() > 0)
         {
@@ -38,7 +38,7 @@ bool PrintHandlerClass::parseFile()
     bytesAvail = _file.available();
     if (bytesAvail > 0)
     {
-        if (_sentPrintCmd.slots() > HP_CMD_SLOTS)
+        if (_cmdToSend.slots() > HP_CMD_SLOTS)
         {
             line = _file.readStringUntil(LF_CHAR);
             
@@ -277,7 +277,6 @@ void PrintHandlerClass::processSerialRx()
     }
 }
 
-
 /* send a command via Serial. Also handle resending */
 void PrintHandlerClass::processSerialTx()
 {
@@ -295,15 +294,22 @@ void PrintHandlerClass::processSerialTx()
     /* previous command was OK */
     if(ACK_OK == _ackRcv)
     {
-        cmd = _sentPrintCmd.front();
-        _sentPrintCmd.pop();
-        cmdToSend = cmd.command;
-        if(isPrinting())
+        if(!_cmdToSend.isempty())
         {
-            parseFile();
-            /* let's store the last sent line */
-            storeSentCmd(cmd);
-            _ackLineNo++;
+            cmd = _cmdToSend.front();
+            _cmdToSend.pop();
+            cmdToSend = cmd.command;
+            if(isPrinting())
+            {
+                parseFile();
+                /* let's store the last sent line */
+                storeSentCmd(cmd);
+                _ackLineNo++;
+            }
+        }
+        else
+        {
+            cmdToSend = "";
         }
     }
     else if(ACK_RESEND == _ackRcv && _rejectedLineNo != INVALID_LINE)
@@ -335,7 +341,7 @@ void PrintHandlerClass::processSerialTx()
 
     }
 
-    if (cmdToSend != "")
+    if (cmdToSend.length() > 0)
     {
         write(cmdToSend);
         _prevCmd = PH_CMD_OTHER;
@@ -379,7 +385,7 @@ void PrintHandlerClass::loopTx()
         {            
             /* no more data in file and the command buffer is empty */
             if((isFileEmpty() == true) && 
-                (_sentPrintCmd.empty() == true))
+                (_cmdToSend.isempty() == true))
             {             
                 _printStarted = false;
                 _printCompleted = true;
@@ -412,7 +418,7 @@ void PrintHandlerClass::loopTx()
 void PrintHandlerClass::startPrint()
 {
     String command;
-    _sentPrintCmd.clear();
+    _cmdToSend.clear();
     _printStarted = true;
     _printCompleted = false;
     _ackRcv = ACK_OK;

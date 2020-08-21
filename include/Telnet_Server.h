@@ -5,24 +5,36 @@
 #include "Config.h"
 #include <Message_Queue.h>
 
-#define TELNET_SERVER_NAME "3DP_HostPrint"
-#define TELNET_LOG_SIZE 50
-
-#define TELNET_PORT 23
+#define TELNET_SERVER_NAME  "3DP_HostPrint"
+#define TELNET_LOG_SIZE     HP_CMD_QUEUE_SIZE
 
 class TelnetLogger : public Print
 {
 private:
     // DNSServer _dnsServer;
-    WiFiServer _server;
+    WiFiServer* _server;
     WiFiClient _client;
     MessageQueue<String> _messageList;
-
+    uint32_t _nextTransmit;
+    uint16_t _port;
+    /* transmit to clients every 300ms */
+    const uint16_t TRANSMIT_INTERVAL = 300;
 public:
-    void begin()
+    TelnetLogger()
     {
-        _server.begin(TELNET_PORT);
-        _server.setNoDelay(true);
+        _server = new WiFiServer();
+        _client = WiFiClient();
+        _nextTransmit = 0;
+        _port = 23;
+    }
+    void begin(uint16_t port)
+    {
+        if(port)
+        {
+            _port = port;
+        }
+        _server->begin(_port);
+        _server->setNoDelay(true);
     };
     void loop();
     size_t write(uint8_t c)

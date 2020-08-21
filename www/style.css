@@ -179,6 +179,18 @@ input[type=submit],
     float: left;
 }
 
+#wifireset {
+    cursor: pointer;
+    margin: 5px 5px 0px 0px;
+    padding: 0px 15px;
+    border: 0 none;
+    cursor: pointer;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+    background-color: #f1f1f1;
+    font-size: 18px;
+    text-align: center;
+}
 .settings-container {
     width: 100%;
 }
@@ -194,18 +206,16 @@ input[type=submit],
     margin-top: 10px;
 }
 
-#otaupload,
-#stats,
-#storage {
+.setting {
     float: left;
     width: 49%;
-    height: 100px;
+    height: 180px;
     margin-top: 10px;
     background-color: #FFFFFF;
     border-radius: 5px;
 }
 
-#stats {
+#settings-stats {
     float: right;
 }
 
@@ -343,6 +353,12 @@ input[type=submit],
 
 #lcommand {
     color: lightcoral;
+}
+
+#spacer-vertical {
+    height: 3px;
+    width: 100%;
+    background-color: darkgrey;
 }
 
 *.unselectable {

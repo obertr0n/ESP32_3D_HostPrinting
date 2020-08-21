@@ -50,7 +50,7 @@ class PrintHandlerClass
 private:
     File _file;
     PrintState _state;
-    MessageQueue<GCodeCmd> _sentPrintCmd;
+    MessageQueue<GCodeCmd> _cmdToSend;
 
     GCodeCmd _storedPrintCmd[HP_MAX_SAVED_CMD];
     uint32_t _storedCmdIdx;
@@ -211,7 +211,7 @@ public:
         uint8_t checksum;
         String cmd;
         GCodeCmd msg;
-        
+ 
         LOG_Println("ac " + command);
         LOG_Println("is master ");
         LOG_Println(master);
@@ -220,8 +220,7 @@ public:
         LOG_Println("connected ");
         LOG_Println(_printerConnected);
         LOG_Println("printing ");
-        LOG_Println(isPrinting());
-        
+        LOG_Println(isPrinting());     
 
         /* only add a command if printer is connected */
         if (_printerConnected)
@@ -247,11 +246,10 @@ public:
                 {
                     cmd = command;
                 }
-                LOG_Println("sc " + cmd);
 
                 msg.command = cmd;
 
-                return _sentPrintCmd.push(msg);
+                return _cmdToSend.push(msg);
             }
         }
         return false;
@@ -309,16 +307,16 @@ public:
         _queueLineNo = 0U;
         _ackLineNo = 0U;
         _rejectedLineNo = INVALID_LINE;
-        _sentPrintCmd.clear();
+        _cmdToSend.clear();
     }
     void printbuff()
     {
 #if __DEBUG_MODE == ON
-        while (!_sentPrintCmd.empty())
+        while (!_cmdToSend.isempty())
         {
             LOG_Println("CMD: ");
-            LOG_Println(_sentPrintCmd.front().command);
-            _sentPrintCmd.pop();
+            LOG_Println(_cmdToSend.front().command);
+            _cmdToSend.pop();
         }
 #endif
     }

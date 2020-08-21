@@ -11,9 +11,6 @@ class WiFiManagerClass
     public:
         WiFiManagerClass()
         {
-            _server = new AsyncWebServer(80);
-            _dns = new DNSServer();
-
             _softApIP = IPAddress(192, 168, 0, 150);
             _softApSnet = IPAddress(255,255,255,0);
 
@@ -24,15 +21,19 @@ class WiFiManagerClass
         };
         ~WiFiManagerClass()
         {   
-            _server->end();
-            delete _server;
-
-            _dns->stop();
-            delete _dns;
+            if(_server)
+            {
+                _server->end();
+                delete _server;
+            }
+            if(_dns)
+            {
+                _dns->stop();
+                delete _dns;
+            }
         };
 
-        void reset();
-        void restart();
+        void resetSetting();
         void begin();
         void loop();
     private:

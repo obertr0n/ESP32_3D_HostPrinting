@@ -24,6 +24,7 @@ class WebPrintServer
         void webServerANYGcodeRequest(AsyncWebServerRequest *request);
         void webServerGETListDirectories(AsyncWebServerRequest *request);
         void webServerGETAbortPrint(AsyncWebServerRequest *request);
+        void webServerGETResetWifiSettings(AsyncWebServerRequest *request);
         void webServerPOSTUploadFirmware(AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final);
     public:
         WebPrintServer()
