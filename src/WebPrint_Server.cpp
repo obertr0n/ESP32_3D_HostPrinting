@@ -240,5 +240,9 @@ void WebPrintServer::webServerPOSTUploadFirmware(AsyncWebServerRequest *request,
                 WebPrintServer::_rebootRequired = true;
             }
         }
+        else
+        {
+            LOG_Println(Update.errorString());
+        }
     }
 }

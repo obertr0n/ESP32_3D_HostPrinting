@@ -18,7 +18,7 @@ private:
     uint32_t _nextTransmit;
     uint16_t _port;
     /* transmit to clients every 300ms */
-    const uint16_t TRANSMIT_INTERVAL = 300;
+    const uint16_t TRANSMIT_INTERVAL = 500;
 public:
     TelnetLogger()
     {

@@ -12,7 +12,7 @@ const String PrintHandlerClass::EXTRUDER_CNT_STR = "EXTRUDER_COUNT:";
 void PrintHandlerClass::begin(HardwareSerial* port)
 {    
     _serial = port;
-    #if OFF == __DEBUG_MODE
+    #if ON == __DEBUG_MODE && ON == USE_TELNET
     _serial->begin(BAUD_RATES[0]);
     #endif
 }

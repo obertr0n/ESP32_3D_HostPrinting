@@ -13,6 +13,7 @@
 
 /* start config */
 #define __DEBUG_MODE            ON
+#define USE_TELNET              ON
 
 /* section pins */
 #define PIN_CAM_FLASH           4

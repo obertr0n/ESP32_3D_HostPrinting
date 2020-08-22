@@ -16,14 +16,15 @@
 
 void setup(void)
 {
+    /* setup the WiFi connection */
+    /* either connect to an already saved network or create a portal for setting it up */
+    WiFiManager.begin();
+    
+    /* test like this */
     LOG_Init();
 
     /* init utilities */
     Util.begin();
-
-    /* setup the WiFi connection */
-    /* either connect to an already saved network or create a portal for setting it up */
-    WiFiManager.begin();
 
     /* init file handler */
     FileHandler.begin();
@@ -35,7 +36,7 @@ void setup(void)
     PrintHandler.begin(&PRINTER_SERIAL);
 
     /* telnet service */
-    // TelnetLog.begin();
+    TelnetLog.begin(23);
 
     LOG_Println("Init Done");
     /* signal successful init */
@@ -44,11 +45,10 @@ void setup(void)
 
 void loop(void)
 {
-    // TelnetLog.loop();
-
     PrintHandler.loopRx();
     PrintHandler.loopTx();
-
     /* mainly OTA checks */
     PrintServer.loop();
+    
+    TelnetLog.loop();
 }
