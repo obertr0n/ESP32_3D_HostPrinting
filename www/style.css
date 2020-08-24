@@ -181,7 +181,7 @@ input[type=submit],
 
 #wifireset {
     cursor: pointer;
-    margin: 5px 5px 0px 0px;
+    margin: 5px 5px 0px 5px;
     padding: 0px 15px;
     border: 0 none;
     cursor: pointer;
