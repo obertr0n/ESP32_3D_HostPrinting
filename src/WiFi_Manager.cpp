@@ -48,6 +48,8 @@ void WiFiManagerClass::beginCaptive()
     /* if we are here, we either failed WiFi connection */
     /* start in AP mode */
     LOG_Println("Captive starting...");
+    /* ensure correct Wifi statup */
+    WiFi.disconnect(true, true);
     startAP();
     
     _server = new AsyncWebServer(80);
@@ -98,18 +100,28 @@ void WiFiManagerClass::webServerANYWifReq(AsyncWebServerRequest *request)
     LOG_Println("Serve req");
     if (request->hasArg("refresh"))
     {
-        result = "{\"networks\":[";
-        int16_t numNetworks = WiFi.scanNetworks();
-        for (int16_t netId = 0; netId < numNetworks; netId++)
+        result = "{\"networks\":[]}";
+        
+        int16_t scanRet = WiFi.scanNetworks();
+
+        if(scanRet == WIFI_SCAN_FAILED)
         {
-            result += "{\"ssid\":\"" + WiFi.SSID(netId) + "\",";
-            result += "\"rssi\":\"" + static_cast<String>(WiFi.RSSI(netId)) + "\",";
-            result += "\"chan\":\"" + static_cast<String>(WiFi.channel(netId)) + "\",";
-            result += "\"type\":\"" + static_cast<String>(WiFi.encryptionType(netId)) + "\",";
-            result += "\"bssid\":\"" + WiFi.BSSIDstr(netId) + "\"},";
+            LOG_Println("Scan Failed");
         }
-        result[result.length() - 1] = ']';
-        result += "}";
+        else if(scanRet > 0)
+        {
+            result = "{\"networks\":[";
+            for (int16_t netId = 0; netId < scanRet; netId++)
+            {
+                result += "{\"ssid\":\"" + WiFi.SSID(netId) + "\",";
+                result += "\"rssi\":\"" + static_cast<String>(WiFi.RSSI(netId)) + "\",";
+                result += "\"chan\":\"" + static_cast<String>(WiFi.channel(netId)) + "\",";
+                result += "\"type\":\"" + static_cast<String>(WiFi.encryptionType(netId)) + "\",";
+                result += "\"bssid\":\"" + WiFi.BSSIDstr(netId) + "\"},";
+            }
+            result[result.length() - 1] = ']';
+            result += "}";
+        }
         code = 200;
         LOG_Println(result);
     }
@@ -167,8 +179,14 @@ bool WiFiManagerClass::startSTA()
     {
         LOG_Println("using " + _ssid + " and pass " + _pass);
 
-        WiFi.mode(WIFI_STA);
-        WiFi.begin(_ssid.c_str(), pass);
+        if (!WiFi.mode(WIFI_STA))
+        {
+            return false;
+        }
+        if(WL_CONNECT_FAILED == WiFi.begin(_ssid.c_str(), pass))
+        {
+            return false;
+        }
 
         uint32_t timeout = millis() + CONNECTION_TIMEOUT;
 

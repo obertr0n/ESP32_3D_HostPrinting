@@ -16,12 +16,20 @@
 
 void setup(void)
 {
+#if __DEBUG_MODE == ON && USE_TELNET == ON
     /* setup the WiFi connection */
     /* either connect to an already saved network or create a portal for setting it up */
     WiFiManager.begin();
     
     /* test like this */
     LOG_Init();
+#else    
+    /* test like this */
+    LOG_Init();
+    /* setup the WiFi connection */
+    /* either connect to an already saved network or create a portal for setting it up */
+    WiFiManager.begin();
+#endif
 
     /* init utilities */
     Util.begin();
