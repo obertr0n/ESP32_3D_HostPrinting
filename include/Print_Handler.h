@@ -112,23 +112,37 @@ private:
     static const String EXTRUDER_CNT_STR;
 
     void preBuffer();
+
+    void processGcodeFile()
+    {
+        /* continuously add commands to the queue */
+        if(_cmdToSend.slots() > HP_CMD_SLOTS)
+        {
+            parseFile();
+        }
+    }
+
     void toLcd(String &text)
     {
         queueCommand("M117 " + text, true, false);
         _prevCmd = PH_CMD_M117;
     };
+    
     void write(String &command)
     {
         _serial->println(command);
     }
+
     void write(const char* command)
     {
         _serial->println(command);
     }
+
     bool isTempReply(String &reply)
     {
         return ((reply.indexOf("T:") > -1) && (reply.indexOf("B:") > -1));
     }
+
     bool isMoveReply(String &reply)
     {
         return ((reply.indexOf("X:") > -1) && (reply.indexOf("Y:") > -1));
@@ -138,6 +152,7 @@ private:
         write("M115");
         _prevCmd = PH_CMD_M115;
     }
+
     void writeProgress(uint8_t prc)
     {
         if ((millis() >= _prgTout) && (_prevCmd != PH_CMD_M73))
@@ -212,15 +227,15 @@ public:
         String cmd;
         GCodeCmd msg;
  
-        LOG_Println("ac " + command);
-        LOG_Println("is master ");
-        LOG_Println(master);
-        LOG_Println("has checksum ");
-        LOG_Println(chksum);
-        LOG_Println("connected ");
-        LOG_Println(_printerConnected);
-        LOG_Println("printing ");
-        LOG_Println(isPrinting());     
+        // LOG_Println("ac " + command);
+        // LOG_Println("is master ");
+        // LOG_Println(master);
+        // LOG_Println("has checksum ");
+        // LOG_Println(chksum);
+        // LOG_Println("connected ");
+        // LOG_Println(_printerConnected);
+        // LOG_Println("printing ");
+        // LOG_Println(isPrinting());     
 
         /* only add a command if printer is connected */
         if (_printerConnected)
