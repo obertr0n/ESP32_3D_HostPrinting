@@ -43,8 +43,10 @@ void setup(void)
     /* print handler */
     PrintHandler.begin(&PRINTER_SERIAL);
 
+#if __DEBUG_MODE == OFF && USE_TELNET == ON
     /* telnet service */
     TelnetLog.begin(23);
+#endif
 
     LOG_Println("Init Done");
     /* signal successful init */
@@ -57,6 +59,7 @@ void loop(void)
     PrintHandler.loopTx();
     /* mainly OTA checks */
     PrintServer.loop();
-    
+#if ON == USE_TELNET 
     TelnetLog.loop();
+#endif
 }

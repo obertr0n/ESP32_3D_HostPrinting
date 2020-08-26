@@ -17,8 +17,8 @@ private:
     MessageQueue<String> _messageList;
     uint32_t _nextTransmit;
     uint16_t _port;
-    /* transmit to clients every 300ms */
-    const uint16_t TRANSMIT_INTERVAL = 500;
+    /* transmit to clients every 200ms */
+    const uint16_t TRANSMIT_INTERVAL = 200;
 public:
     TelnetLogger()
     {
@@ -68,32 +68,31 @@ public:
             _messageList.push((String)no);
         }
     }
-
     void write(boolean b)
     {
         if (b)
         {
-            write((String) "true");
+            write((String) "true\n");
         }
         else
         {
-            write((String) "false");
+            write((String) "false\n");
         }
     }
 
     void println(String str)
     {
-        write(str + '\n');
+        write(str + "\n");
     }
 
     void println(uint32_t no)
     {
-        write((String)no + '\n');
+        write((String)no + "\n");
     }
-    void println(boolean b)
-    {
-        write(b);
-    }
+    // void println(boolean b)
+    // {
+    //     write(b);
+    // }
 };
 
 extern TelnetLogger TelnetLog;
