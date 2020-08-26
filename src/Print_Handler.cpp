@@ -12,7 +12,7 @@ const String PrintHandlerClass::EXTRUDER_CNT_STR = "EXTRUDER_COUNT:";
 void PrintHandlerClass::begin(HardwareSerial* port)
 {    
     _serial = port;
-    #if ON == __DEBUG_MODE && ON == USE_TELNET
+    #if ((ON == __DEBUG_MODE) && (ON == USE_TELNET)) || (OFF == __DEBUG_MODE)
     _serial->begin(BAUD_RATES[0]);
     #endif
 }
@@ -58,7 +58,7 @@ void PrintHandlerClass::addLine(String& line)
 {
     line.trim();
     const int commentIdx = line.indexOf(';');
-    
+    LOG_Println("parse " + line);
     if(commentIdx > -1)
     {
         line = line.substring(0, commentIdx);
@@ -265,9 +265,12 @@ void PrintHandlerClass::processSerialRx()
                               
                 if (isMoveReply(l_serialReply) || isTempReply(l_serialReply))
                 {
+                    _serialReply = l_serialReply;
                     resetCommTimeout();
                 }              
-            }            
+            }
+            LOG_Println('r' + l_serialReply);
+
             if (replyFound)
             {
                 _serialReply = l_serialReply;
@@ -301,8 +304,7 @@ void PrintHandlerClass::processSerialTx()
             cmdToSend = cmd.command;
             if(isPrinting())
             {
-                parseFile();
-                /* let's store the last sent line */
+                /* store the last sent line */
                 storeSentCmd(cmd);
                 _ackLineNo++;
             }
@@ -317,10 +319,8 @@ void PrintHandlerClass::processSerialTx()
         /* we need to resend a previous command */
         cmdToSend = getStoredCmd(_rejectedLineNo);
         _rejectedLineNo += 1U;
-        LOG_Println("Reject: ");
-        LOG_Println(_rejectedLineNo);
-        LOG_Println("Current: ");
-        LOG_Println(_ackLineNo);
+        LOG_Println("Reject: " + (String) _rejectedLineNo);
+        LOG_Println("Current: " + (String) _ackLineNo);
 
         /* if we are out of sync by only 1 command than no resending next cycle */
         if(_rejectedLineNo == _ackLineNo)
@@ -343,6 +343,7 @@ void PrintHandlerClass::processSerialTx()
 
     if (cmdToSend.length() > 0)
     {
+        LOG_Println('s' + cmdToSend);
         write(cmdToSend);
         _prevCmd = PH_CMD_OTHER;
         /* an OK will be resetted here, other states are handled above */
@@ -393,6 +394,7 @@ void PrintHandlerClass::loopTx()
             if (!_printCompleted)
             {
                 processSerialTx();
+                processGcodeFile();
             }
             else
             {
