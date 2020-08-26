@@ -1,16 +1,12 @@
 
-#include <WiFi.h>
-
-#include <AsyncTCP.h>
-#include <DNSServer.h>
-#include <vector>
-
 #include "Config.h"
 #include "FileSys_Handler.h"
 #include "Print_Handler.h"
 #include "WebPrint_Server.h"
 #include "WiFi_Manager.h"
+#if ON == USE_TELNET
 #include "Telnet_Server.h"
+#endif
 #include "Util.h"
 #include "Log.h"
 
