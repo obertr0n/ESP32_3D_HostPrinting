@@ -1,201 +1,93 @@
+* {
+    box-sizing: border-box;
+  }
+
 body {
-    background: #3498db;
+    line-height: 1.25;
+    background: #1E2227;
     font-family: sans-serif;
-    font-size: 14px;
-    color: #777;
-    margin: auto;
-    padding-top: 10px;
-    max-width: 550px;
-    display: block;
-    justify-content: center;
-    align-items: center;
+    color: white;
 }
 
-#wiftable {
-    border-top-right-radius: 10px;
-    border-top-left-radius: 10px;
-    background-color: #FFFFFF;
+#container {
+    width: 800px;
+    margin: 0 auto;
 }
 
-table{
-    border-top-right-radius: 15px;
-    border-top-left-radius: 15px;
+h2 {
+    text-align: center;
+    color: white;
 }
 
-#twifi {
+table {
+    color: black;
+    border: 1px solid #ccc;
+    border-collapse: collapse;
+    margin: 0;
+    padding: 0;
     width: 100%;
-    overflow: hidden;
+    table-layout: fixed;
+  }
+
+table caption {
+    font-size: 1.5em;
+    margin: .5em 0 .75em;
 }
 
-#twifi tr {
-    border-bottom: 1px solid #ddd;
-    width: 100%;
-    float:left;
-    cursor: pointer;
+table tr {
+    background-color: #f8f8f8;
+    border: 1px solid #ddd;
+    padding: .35em;
 }
 
-#twifihead {
-    background-color: #5FADE2;
-    color: #ffff;
-}
-
-#twifihead th {
+table th,
+table td {
+    padding: .625em;
     text-align: center;
 }
 
-#twifihead th,
-#twifi td {
+table td {
+    cursor: pointer;
     word-wrap: break-word;
-    height: 20px;
-    padding-top: 5px;
 }
 
-#thssid,
-#tdssid {
-    float: left;
-    width: 50%;
-    text-align: center;
+table th {
+    font-size: .85em;
+    letter-spacing: .1em;
+    text-transform: uppercase;
 }
 
-#tdssid {
-    text-align: center;
-}
-
-#tdssid:hover, 
-#tdrssi:hover,
-#tdsecurity:hover,
-#tdchannel:hover
-{
-    text-decoration-line: underline;
-}
-
-#tdrssi,
-#thrssi {
-    float: left;
-    width: 10%;
-    text-align: center;
-}
-
-#refresh {
+#wifi-scan{
     cursor: pointer;
-    font-size: 13px;
-    height: 20px;
-    border-radius: 5px;
+    font-size: 1.2em;
+    letter-spacing: .1em;
+    text-transform: uppercase;
     text-align: center;
-    float: left;
-}
-
-#tdsecurity,
-#thsecurity {
-    float: right;
-    width: 25%;
-}
-
-#tdsecurity {
-    text-align: center;
-}
-
-#thchannel,
-#tdchannel {
-    width: 13%;
-    text-align: center;
-    float: left;
-}
-
-#useaponly,
-#btn-save{
-    float: right;
-    background-color: wheat;
-    border-radius: 5px;    
-    padding: 5px;
-    font-size: 18px;
-    color: #000;
-    cursor: pointer;
-}
-
-#btn-save {
-    float: left;
-}
-
-#btn-ok {
+    margin-top: 10px;
+    height: 40px;
+    vertical-align: middle;
+    line-height: 40px;
     background-color: lightgreen;
-    float: right;
-    font-size: 18px;
-    padding: 5px;
-    color: #000;
-    cursor: pointer;
+    width: 100%;
 }
 
-#useaponly{    
-    cursor: default;
+#wifi-scan:hover {
+    background-color: darkgreen;
 }
 
-#savebtn {
-    float: left;
-}
-
-#wificonfig {
-    float: center;
-}
-
-#wifipass {
-    width: 30%;
-}
-
-.passinput-background {
-    display: none;
-    position: fixed; /* Stay in place */
-    z-index: 1; /* Sit on top */
-    padding-top: 100px; /* Location of the box */
-    left: 0;
-    top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgb(0,0,0); /* Fallback color */
-    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
-}
-  
-  /* Modal Content */
-.passinput-content {
-    background-color: #fefefe;
-    font-size: 17px;
-    margin: auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 30%;
-}
-  
-/* The Close Button */
-.passclose {
-    color: #aaaaaa;
-    float: right;
-    font-size: 30px;
-    font-weight: bold;
-}
-  
-.passclose:hover,
-.passclose:focus {
-    color: #000;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-/* Tooltip container */
 .tooltip {
     position: relative;
     display: inline-block;
-    border-bottom: 1px dotted black; /* If you want dots under the hoverable text */
+    border-bottom: 1px dotted black;
 }
 
-/* Tooltip text */
 .tooltip .tooltiptext {
     visibility: hidden;
-    width: 150px;
+    width: 200px;
     top: 100%;
     left: 50%;
-    background-color: black;
-    color: #fff;
+    background-color: white;
+    color: black;
     font-size: 10px;
     text-align: center;
     padding: 5px 0;
@@ -204,15 +96,142 @@ table{
     z-index: 1;
 }
 
-/* Show the tooltip text when you mouse over the tooltip container */
 .tooltip:hover .tooltiptext {
   visibility: visible;
 }
 
-*.unselectable {
-    -moz-user-select: -moz-none;
-    -khtml-user-select: none;
-    -webkit-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
- }
+.overlay-background {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    padding-top: 200px;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(22, 14, 37, 0.568);
+}
+
+.overlay-content {
+    background: #1E2227;
+    margin: 0 auto;
+    padding: 20px;
+    height: 150px;
+    border: 1px solid #888;
+    width: 80%;
+}
+
+.overlay-content input{
+    height: 35px;
+    width: 50%;
+    float: right;
+}
+
+.overlay-close {
+    color: #aaaaaa;
+    float: right;
+    font-size: 30px;
+    font-weight: bold;
+}
+
+.overlay-close:hover,
+.overlay-close:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#wifi-aponly,
+#btn-save,
+#btn-ok{
+    color: #444444;
+    background: #F3F3F3;
+    padding: 5px 10px;
+    border-radius: 2px;
+    font-size: 1.2em;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    text-align: center;
+    outline: none;
+    cursor: pointer;
+    float: left;
+    width: 45%;
+}
+
+#wifi-aponly:hover,
+#btn-save:hover,
+#btn-ok:hover{
+    color: #333333;
+    background: #F7F7F7;
+}
+
+#btn-save {
+    float: right;
+}
+#btn-ok {
+    width: 30%;
+}
+
+@media (max-width:800px) {
+    #container {
+        width: 100%;
+    }
+
+    .tooltip .tooltiptext {
+        left: 20%;
+    }
+}
+
+@media screen and (max-width: 480px) {
+
+    .tooltip .tooltiptext {
+        left: 0%;
+    }
+
+    .overlay-content {
+        width: 99%;
+    }
+
+    table {
+        border: 0;
+    }
+
+    table caption {
+        font-size: 1.3em;
+    }
+
+    table thead {
+        border: none;
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        padding: 0;
+        position: absolute;
+        width: 1px;
+    }
+
+    table tr {
+        border-bottom: 3px solid #ddd;
+        display: block;
+        margin-bottom: .625em;
+    }
+
+    table td {
+        border-bottom: 1px solid #ddd;
+        display: block;
+        font-size: .8em;
+        text-align: center;
+    }
+
+    table td::before {
+        content: attr(data-label);
+        float: left;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+    table td:last-child {
+        border-bottom: 0;
+    }
+}

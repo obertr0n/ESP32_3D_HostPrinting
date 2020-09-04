@@ -1,79 +1,79 @@
 <!DOCTYPE html>
 <html>
 <head onload="refreshWifi();">
-    <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-
+    <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <link rel="stylesheet" type="text/css" href="/www/captive.css">
-    <!-- <link rel="stylesheet" type="text/css" href="captive.css"> -->
+    <link rel="stylesheet" type="text/css" href="captive.css">
     <title>ESP32 HostPrint</title>
 </head>
 
 <body>
     <div id="container">
-        <br/><br/>
-        <div id="wiftable">
-            <table id="twifi">
-                <thead id="twifihead">
+        <h2>WiFi Mode configuration</h2>
+        <br/>
+        <div id="wifi-settings">
+            <table id="wifi-table">
+                <thead id="wifi-thead">
                     <tr>
-                        <th id="thssid" class="unselectable" unselectable="on">
-                            <div id="refresh" onclick="refreshWifi()"> Refresh
-                                <svg fill="#ffff" viewBox="0 0 24 24" width="1em" height="1em">
-                                    <path
-                                        d="M 7.1601562 3 L 8.7617188 5 L 19 5 L 19 15 L 16 15 L 20 20 L 24 15 L 21 15 L 21 3 L 7.1601562 3 z M 4 4 L 0 9 L 3 9 L 3 21 L 16.839844 21 L 15.238281 19 L 5 19 L 5 9 L 8 9 L 4 4 z" />
-                                </svg>
-                            </div>
-                            <label>SSID</label>
-                        </th>
+                        <th id="thssid" class="unselectable" unselectable="on">SSID</th>
                         <th id="thrssi" class="unselectable" unselectable="on">RSSI</th>
                         <th id="thchannel" class="unselectable" unselectable="on">Channel</th>
                         <th id="thsecurity" class="unselectable" unselectable="on">Security</th>
                     </tr>
                 </thead>
-                <tbody id="twifibody">
-                    <!-- <tr id="filestr" onclick="connectTo('TP-LINK')">
+                <tbody id="wifi-tbody">
+                    <tr id="wifi-trprops" onclick="connectTo('TP-LINK')">
                         <td id="tdssid">TP-LINK</td>
                         <td id="tdrssi">-68db</td>
                         <td id="tdchannel">11</td>
                         <td id="tdsecurity">WPA2_PSK</td>
                     </tr>
-                    <tr id="filestr" onclick="connectTo('TP-LINK')">
+                    <tr id="wifi-trprops" onclick="connectTo('TP-LINK')">
                         <td id="tdssid">TP-LINK</td>
                         <td id="tdrssi">-68db</td>
                         <td id="tdchannel">11</td>
                         <td id="tdsecurity">WPA2_PSK</td>
                     </tr>
-                    <tr id="filestr" onclick="connectTo('TP-LINK')">
+                    <tr id="wifi-trprops" onclick="connectTo('TP-LINK')">
                         <td id="tdssid">TP-LINK</td>
                         <td id="tdrssi">-68db</td>
                         <td id="tdchannel">11</td>
                         <td id="tdsecurity">WPA2_PSK</td>
                     </tr>
-                    <tr id="filestr" onclick="connectTo('TP-LINK')">
+                    <tr id="wifi-trprops" onclick="connectTo('TP-LINK')">
                         <td id="tdssid">TP-LINK</td>
                         <td id="tdrssi">-68db</td>
                         <td id="tdchannel">11</td>
                         <td id="tdsecurity">WPA2_PSK</td>
                     </tr>
-                    <tr id="filestr" onclick="connectTo('TP-LINK')">
+                    <tr id="wifi-trprops" onclick="connectTo('TP-LINK')">
                         <td id="tdssid">TP-LINK</td>
                         <td id="tdrssi">-68db</td>
                         <td id="tdchannel">11</td>
                         <td id="tdsecurity">WPA2_PSK</td>
-                    </tr> -->
+                    </tr>
                 </tbody>
             </table>
+            <div id="wifi-scan" onclick="refreshWifi()"> Scan networks
+                <svg fill="#ffff" viewBox="0 0 24 24" width="1em" height="1em">
+                    <path
+                        d="M 7.1601562 3 L 8.7617188 5 L 19 5 L 19 15 L 16 15 L 20 20 L 24 15 L 21 15 L 21 3 L 7.1601562 3 z M 4 4 L 0 9 L 3 9 L 3 21 L 16.839844 21 L 15.238281 19 L 5 19 L 5 9 L 8 9 L 4 4 z" />
+                </svg>
+            </div>
         </div>
-        <div id="conconfig">
-        <br/>
-            <div id="passinput" class="passinput-background">
-                <div class="passinput-content">
-                    <span class="passclose">&times;</span>
+        <div id="conn-settings">
+            <br/>
+            <div id="wifi-pass" class="overlay-background">
+                <div class="overlay-content">
+                    <span class="overlay-close">&times;</span>
                     <p>Enter password for selected network.</p>
-                    <input type="text" id="wifipass">
-                    <div id="btn-ok" onclick="storePass()"><span>Ok</span></div>
+                    <input type="password" id="wifipass">
+                    <div id="btn-ok" onclick="storePass()">
+                        <span>Ok</span>
+                    </div>
                 </div>
             </div>
-            <div id="useaponly" class="tooltip" unselectable="on" onclick="useApMode()">
+            <div id="wifi-aponly" class="tooltip" unselectable="on" onclick="useApMode()">
                 <span class="tooltiptext">Keep current AP and don't show this menu on reconnect.</span>
                 <input type="checkbox" id="iuseaponly">
                 <span>Use AP mode only</span>
@@ -87,18 +87,18 @@
 
 <script>
 
-    const tbwifi = document.getElementById('twifibody');
-    const twifi = document.getElementById('twifi');
+    const tbwifi = document.getElementById('wifi-tbody');
+    const twifi = document.getElementById('wifi-table');
     const apMode = document.getElementById('iuseaponly');
 
-    const passinput = document.getElementById("passinput");
-    const closebtn = document.getElementsByClassName("passclose")[0];
+    const passinput = document.getElementById("wifi-pass");
+    const olayclosebtn = document.getElementsByClassName("overlay-close")[0];
     const wifipass = document.getElementById('wifipass');
 
     var passText = "";
     var ssidText = "";
 
-    closebtn.onclick = function()
+    olayclosebtn.onclick = function()
     {
         passinput.style.display = "none";
         wifipass.value = "";
