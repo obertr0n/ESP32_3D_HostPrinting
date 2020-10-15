@@ -22,54 +22,67 @@ private:
 public:
     TelnetLogger()
     {
+        #if (ON == __DEBUG_MODE)
         _server = new WiFiServer();
         _client = WiFiClient();
         _nextTransmit = 0;
         _port = 23;
+        #endif
     }
     void begin(uint16_t port)
     {
+        #if (ON == __DEBUG_MODE)
         if(port)
         {
             _port = port;
         }
         _server->begin(_port);
         _server->setNoDelay(true);
+        #endif
     };
     void loop();
     size_t write(uint8_t c)
     {
+        #if (ON == __DEBUG_MODE)
         if (_messageList.size() < TELNET_LOG_SIZE)
         {
             _messageList.push((String)c);
         }
+        #endif
         return 1;
     }
     size_t write(String str)
     {
+        #if (ON == __DEBUG_MODE)
         if (_messageList.size() < TELNET_LOG_SIZE)
         {
             _messageList.push(str);
             return str.length();
         }
+        #endif
         return 0;
     }
     void write(int no)
-    {
+    {        
+        #if (ON == __DEBUG_MODE)
         if (_messageList.size() < TELNET_LOG_SIZE)
         {
             _messageList.push((String)no);
         }
+        #endif
     }
     void write(uint32_t no)
     {
+        #if (ON == __DEBUG_MODE)
         if (_messageList.size() < TELNET_LOG_SIZE)
         {
             _messageList.push((String)no);
         }
+        #endif
     }
     void write(boolean b)
     {
+        #if (ON == __DEBUG_MODE)
         if (b)
         {
             write((String) "true\n");
@@ -78,6 +91,7 @@ public:
         {
             write((String) "false\n");
         }
+        #endif
     }
 
     void println(String str)
@@ -89,10 +103,6 @@ public:
     {
         write((String)no + "\n");
     }
-    // void println(boolean b)
-    // {
-    //     write(b);
-    // }
 };
 
 extern TelnetLogger TelnetLog;
