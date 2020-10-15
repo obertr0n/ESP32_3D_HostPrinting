@@ -12,7 +12,7 @@
 #define PRINTER_SERIAL          Serial
 
 /* start config */
-#define __DEBUG_MODE            ON
+#define __DEBUG_MODE            OFF
 #define USE_TELNET              ON
 
 /* section pins */
@@ -27,8 +27,8 @@
 
 /* section buffers */
 
-#define HP_MAX_SAVED_CMD        150u
-#define HP_CMD_QUEUE_SIZE       100u
+#define HP_MAX_SAVED_CMD        550u
+#define HP_CMD_QUEUE_SIZE       500u
 #define HP_CMD_SLOTS            3u
 #define HP_PRELOAD_CMD_NUM      50
 
