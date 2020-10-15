@@ -9,67 +9,43 @@ PrintHandlerClass PrintHandler;
 const String PrintHandlerClass::FIRMWARE_NAME_STR = "FIRMWARE_NAME:";
 const String PrintHandlerClass::EXTRUDER_CNT_STR = "EXTRUDER_COUNT:";
 
-void PrintHandlerClass::begin(HardwareSerial* port)
-{    
+void PrintHandlerClass::begin(HardwareSerial *port)
+{
     _serial = port;
-    #if ((ON == __DEBUG_MODE) && (ON == USE_TELNET)) || (OFF == __DEBUG_MODE)
+#if ((ON == __DEBUG_MODE) && (ON == USE_TELNET)) || (OFF == __DEBUG_MODE)
     _serial->begin(BAUD_RATES[0]);
-    #endif
+#endif
 }
 
 void PrintHandlerClass::preBuffer()
 {
     String line;
-    while (_cmdToSend.slots() > HP_CMD_SLOTS)
+    while ((_cmdToSend.slots() > HP_CMD_SLOTS) &&
+           (_file.available() > 0))
     {
-        if (_file.available() > 0)
-        {
-            line = _file.readStringUntil(LF_CHAR);
-            addLine(line);
-        }
+        line = _file.readStringUntil(LF_CHAR);
+        addLine(line);
     }
 }
 
-bool PrintHandlerClass::parseFile()
-{
-    String line;
-    size_t bytesAvail = 0;
-
-    bytesAvail = _file.available();
-    if (bytesAvail > 0)
-    {
-        if (_cmdToSend.slots() > HP_CMD_SLOTS)
-        {
-            line = _file.readStringUntil(LF_CHAR);
-            
-            addLine(line);
-            _estCompPrc = 100U - (bytesAvail * 100U / _fileSize);
-        }
-        return true;
-    }
-    else
-    {
-        _file.close();
-        return false;
-    }
-}
-
-void PrintHandlerClass::addLine(String& line)
+void PrintHandlerClass::addLine(String &line)
 {
     line.trim();
     const int commentIdx = line.indexOf(';');
-    LOG_Println("parse " + line);
-    if(commentIdx > -1)
+    LOG_Println("add " + line);    
+    if (commentIdx > -1)
     {
         line = line.substring(0, commentIdx);
         line.trim();
-        if(line.length()  > 2)
+        if (line.length() > 2)
         {
+            LOG_Println("queue " + line);
             queueCommand(line);
         }
     }
-    else if(line.length()  > 2)
+    else if (line.length() > 2)
     {
+        LOG_Println("queue " + line);
         queueCommand(line);
     }
 }
@@ -177,12 +153,15 @@ bool PrintHandlerClass::parseM115(const String &line)
 void PrintHandlerClass::updateWSState()
 {
     String outStr;
-    if(millis() > _wstxTout)
+    if (millis() > _wstxTout)
     {
         outStr = "PS=" + getState();
-        outStr += "PG=" + (String)_estCompPrc;
-        outStr += "PR=" + _serialReply;
-        
+        outStr += "PG=" + (String)_estCompPrc + "PR=";
+        if(!isPrinting())
+        {
+            outStr += _serialReply;
+        }
+
         PrintServer.write(outStr);
 
         _serialReply = "";
@@ -243,17 +222,17 @@ void PrintHandlerClass::processSerialRx()
                 }
                 else if (l_serialReply.indexOf("ok") > -1)
                 {
-                    if(ACK_OUT_OF_SYNC == _ackRcv)
+                    if (ACK_OUT_OF_SYNC == _ackRcv)
                     {
                         LOG_Println("Ok, ACK_RESEND");
                         _ackRcv = ACK_RESEND;
                     }
-                    else if((ACK_DEFAULT == _ackRcv) ||
-                            (ACK_WAIT == _ackRcv) ||
-                            (ACK_BUSY == _ackRcv) ||
-                            (ACK_OK == _ackRcv))
+                    else if ((ACK_DEFAULT == _ackRcv) ||
+                             (ACK_WAIT == _ackRcv) ||
+                             (ACK_BUSY == _ackRcv) ||
+                             (ACK_OK == _ackRcv))
                     {
-                        LOG_Println("Ok, ACK_OK");
+                        // LOG_Println("Ok, ACK_OK");
                         _ackRcv = ACK_OK;
                     }
                     resetCommTimeout();
@@ -261,18 +240,18 @@ void PrintHandlerClass::processSerialRx()
                 else
                 {
                     replyFound = false;
-                }  
-                              
+                }
+
                 if (isMoveReply(l_serialReply) || isTempReply(l_serialReply))
                 {
                     _serialReply = l_serialReply;
                     resetCommTimeout();
-                }              
+                }
             }
-            LOG_Println('r' + l_serialReply);
 
             if (replyFound)
             {
+                LOG_Println("<<F " + l_serialReply);
                 _serialReply = l_serialReply;
                 l_serialReply = "";
             }
@@ -287,22 +266,22 @@ void PrintHandlerClass::processSerialTx()
     GCodeCmd cmd;
 #if __DEBUG_MODE == ON
     static AckState prevAckRcv = ACK_DEFAULT;
-    if(prevAckRcv != _ackRcv)
+    if (prevAckRcv != _ackRcv)
     {
+        // printAckState(_ackRcv);
         prevAckRcv = _ackRcv;
-        LOG_Println((uint32_t)_ackRcv);
     }
 #endif
 
     /* previous command was OK */
-    if(ACK_OK == _ackRcv)
+    if (ACK_OK == _ackRcv)
     {
-        if(!_cmdToSend.isempty())
+        if (!_cmdToSend.isempty())
         {
             cmd = _cmdToSend.front();
             _cmdToSend.pop();
             cmdToSend = cmd.command;
-            if(isPrinting())
+            if (isPrinting())
             {
                 /* store the last sent line */
                 storeSentCmd(cmd);
@@ -314,16 +293,16 @@ void PrintHandlerClass::processSerialTx()
             cmdToSend = "";
         }
     }
-    else if(ACK_RESEND == _ackRcv && _rejectedLineNo != INVALID_LINE)
+    else if (ACK_RESEND == _ackRcv && _rejectedLineNo != INVALID_LINE)
     {
         /* we need to resend a previous command */
         cmdToSend = getStoredCmd(_rejectedLineNo);
         _rejectedLineNo += 1U;
-        LOG_Println("Reject: " + (String) _rejectedLineNo);
-        LOG_Println("Current: " + (String) _ackLineNo);
+        LOG_Println("Reject: " + (String)_rejectedLineNo);
+        LOG_Println("Current: " + (String)_ackLineNo);
 
         /* if we are out of sync by only 1 command than no resending next cycle */
-        if(_rejectedLineNo == _ackLineNo)
+        if (_rejectedLineNo == _ackLineNo)
         {
             _rejectedLineNo = INVALID_LINE;
             /* reset state */
@@ -338,16 +317,15 @@ void PrintHandlerClass::processSerialTx()
     }
     else
     {
-
     }
 
     if (cmdToSend.length() > 0)
     {
-        LOG_Println('s' + cmdToSend);
+        LOG_Println(">> " + cmdToSend);
         write(cmdToSend);
         _prevCmd = PH_CMD_OTHER;
         /* an OK will be resetted here, other states are handled above */
-        if(ACK_OK == _ackRcv)
+        if (ACK_OK == _ackRcv)
         {
             _ackRcv = ACK_DEFAULT;
         }
@@ -382,15 +360,17 @@ void PrintHandlerClass::loopTx()
         break;
 
     case PH_STATE_PRINTING:
-        if(!_abortReq && !_printCanceled)
-        {            
+        if (!_abortReq && !_printCanceled)
+        {
             /* no more data in file and the command buffer is empty */
-            if((isFileEmpty() == true) && 
+            if ((isFileEmpty() == true) &&
                 (_cmdToSend.isempty() == true))
-            {             
+            {
                 _printStarted = false;
                 _printCompleted = true;
+                LOG_Println("File is empty and no data");
             }
+
             if (!_printCompleted)
             {
                 processSerialTx();
@@ -400,18 +380,20 @@ void PrintHandlerClass::loopTx()
             {
                 _state = PH_STATE_IDLE;
             }
-        }        
+        }
         else
         {
+            
+            LOG_Println("abort or cancel");
             /* request abort, machine reset will be required */
-            write("M112");
+            write("G28");
             _state = PH_STATE_CANCELED;
         }
-    break;
+        break;
     case PH_STATE_CANCELED:
         cancelPrint();
         _state = PH_STATE_IDLE;
-    break;
+        break;
     default:
         break;
     }
@@ -430,7 +412,7 @@ void PrintHandlerClass::startPrint()
     _ackLineNo = 0U;
     _rejectedLineNo = 0U;
 
-    command = "M110 N0*35";    
+    command = "M110 N0*35";
     queueCommand(command, true, false);
     /* make sure that we have some buffered data */
     preBuffer();

@@ -38,7 +38,6 @@ enum AckState
     ACK_OUT_OF_SYNC = 5
 };
 
-
 struct GCodeCmd
 {
     String command;
@@ -97,7 +96,7 @@ private:
     /* communicaiton timeouts in 3s */
     static const uint32_t TOUT_COMM = 3 * 1000;
     /* timeout for websocked transmission */
-    static const uint32_t TOUT_WSTX = 3 * 100;
+    static const uint32_t TOUT_WSTX = 4 * 100;
     /* timeout for Serial write command */
     static const uint32_t TOUT_SERIAL_WRITE = 1 * 100;
 
@@ -116,9 +115,56 @@ private:
     void processGcodeFile()
     {
         /* continuously add commands to the queue */
-        if(_cmdToSend.slots() > HP_CMD_SLOTS)
+        size_t bytesAvail = 0;
+
+        bytesAvail = _file.available();
+        if (bytesAvail > 0)
         {
-            parseFile();
+            if (_cmdToSend.slots() > HP_CMD_SLOTS)
+            {
+                String line;
+                line = _file.readStringUntil(LF_CHAR);
+
+                addLine(line);
+                _estCompPrc = 100U - (bytesAvail * 100U / _fileSize);
+            }
+            else
+            {
+                //LOG_Println("No room");
+            }
+        }
+        else
+        {
+            LOG_Println("No data");
+            _file.close();
+        }
+    }
+
+    void printAckState(AckState state)
+    {
+        switch (state)
+        {
+        case ACK_DEFAULT:
+            LOG_Println("State: DEFAULT");
+            break;
+        case ACK_OK:
+            LOG_Println("State: OK");
+            break;
+        case ACK_WAIT:
+            LOG_Println("State: WAIT");
+            break;
+        case ACK_BUSY:
+            LOG_Println("State: BUSY");
+            break;
+        case ACK_RESEND:
+            LOG_Println("State: RESEND");
+            break;
+        case ACK_OUT_OF_SYNC:
+            LOG_Println("State: OOS");
+            break;
+        default:
+            LOG_Println("State: UNK");
+            break;
         }
     }
 
@@ -127,13 +173,13 @@ private:
         queueCommand("M117 " + text, true, false);
         _prevCmd = PH_CMD_M117;
     };
-    
+
     void write(String &command)
     {
         _serial->println(command);
     }
 
-    void write(const char* command)
+    void write(const char *command)
     {
         _serial->println(command);
     }
@@ -166,7 +212,6 @@ private:
     void detectPrinter();
     void updateWSState();
     void resetCommTimeout() { _commTout = millis() + TOUT_COMM; };
-    bool parseFile();
     bool isFileEmpty() { return _file.available() == 0; };
     void addLine(String &line);
     /* simple circular buffer */
@@ -177,6 +222,7 @@ private:
 
         _storedPrintCmd[_storedCmdIdx] = cmd;
     }
+
     /* search for and entry with the same line number
        empty string represents not found
      */
@@ -226,7 +272,7 @@ public:
         uint8_t checksum;
         String cmd;
         GCodeCmd msg;
- 
+
         // LOG_Println("ac " + command);
         // LOG_Println("is master ");
         // LOG_Println(master);
@@ -235,7 +281,7 @@ public:
         // LOG_Println("connected ");
         // LOG_Println(_printerConnected);
         // LOG_Println("printing ");
-        // LOG_Println(isPrinting());     
+        // LOG_Println(isPrinting());
 
         /* only add a command if printer is connected */
         if (_printerConnected)
@@ -261,8 +307,8 @@ public:
                 {
                     cmd = command;
                 }
-
                 msg.command = cmd;
+                LOG_Println("Push: " + cmd);
 
                 return _cmdToSend.push(msg);
             }
@@ -279,11 +325,16 @@ public:
     {
         _file = file;
         _fileSize = _file.size();
+        LOG_Println("Print req: ");
+        LOG_Println(_file.name());
+        
         _printRequested = true;
     };
-    void begin(HardwareSerial* port);
+
+    void begin(HardwareSerial *port);
     void loopTx();
     void loopRx();
+
     String getState()
     {
         String stateStr;
@@ -311,19 +362,21 @@ public:
         }
         return stateStr;
     };
+
     void cancelPrint()
     {
         _printCanceled = false;
         _abortReq = false;
         _printStarted = false;
         _printRequested = false;
-        _storedCmdIdx = 0U; 
+        _storedCmdIdx = 0U;
 
         _queueLineNo = 0U;
         _ackLineNo = 0U;
         _rejectedLineNo = INVALID_LINE;
         _cmdToSend.clear();
     }
+
     void printbuff()
     {
 #if __DEBUG_MODE == ON
