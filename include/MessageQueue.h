@@ -3,35 +3,46 @@
 
 #include <WString.h>
 #include <inttypes.h>
-#include "Config.h"
+#include <assert.h>
 
 template <class T> class MessageQueue
 {
 private:
-    T _msgQueue[HP_CMD_QUEUE_SIZE];
+    T* _msgQueue;
     uint32_t _tail;
     uint32_t _head;
+    uint16_t _size;
     bool _full;
 
 public:
-    MessageQueue()
+    MessageQueue(uint16_t size)
     {
         _tail = 0;
         _head = 0;
         _full = false;
+        _size = size;
+        _msgQueue = (T*) malloc(size * sizeof(T));
+        assert(_msgQueue != NULL);
     };
+    ~MessageQueue()
+    {
+        if(_msgQueue)
+        {
+            free(_msgQueue);
+        }
+    }
     bool push(T const& elem);
     void pop();
     T front();
 
     uint32_t capacity() 
     { 
-        return HP_CMD_QUEUE_SIZE; 
+        return _size; 
     };
 
     uint32_t size() 
     { 
-        return HP_CMD_QUEUE_SIZE - slots(); 
+        return _size - slots(); 
     };
 
     bool isfull() 
@@ -56,17 +67,17 @@ public:
 
         if(isempty())
         {
-            freePos = HP_CMD_QUEUE_SIZE;
+            freePos = _size;
         }
         else if(!_full)
         {
             if(_head > _tail)
             {
-                freePos = HP_CMD_QUEUE_SIZE - _head;
+                freePos = _size - _head;
             }
             else
             {
-                freePos = HP_CMD_QUEUE_SIZE + _head - _tail;
+                freePos = _size + _head - _tail;
             }            
         }  
         return freePos;
@@ -80,7 +91,7 @@ void MessageQueue<T>::pop()
 
     /* next will be the tail after this pop */
     next = _tail + 1;
-    if(next >= HP_CMD_QUEUE_SIZE)
+    if(next >= _size)
     {
         next = 0;
     }
@@ -102,27 +113,34 @@ T MessageQueue<T>::front()
 }
 
 template <class T>
-bool MessageQueue<T>::push(T const& elem)
+bool MessageQueue<T>::push(T const &elem)
 {
-    uint32_t next = _head + 1;
-    /* we are at top, circle to first element */
-    if (next >= HP_CMD_QUEUE_SIZE)
+    if (_msgQueue != nullptr)
     {
-        next = 0;
+        uint32_t next = _head + 1;
+        /* we are at top, circle to first element */
+        if (next >= _size)
+        {
+            next = 0;
+        }
+        /* buffer full, and no element was freed */
+        if (next == _tail)
+        {
+            _full = true;
+            /* return error */
+            return false;
+        }
+        /* add the data to the buffer */
+        _msgQueue[_head] = elem;
+        /* advance the head */
+        _head = next;
+
+        return true;
     }
-    /* buffer full, and no element was freed */
-    if (next == _tail) 
+    else
     {
-        _full = true;
-        /* return error */
         return false;
     }
-    /* add the data to the buffer */
-    _msgQueue[_head] = elem;
-    /* advance the head */
-    _head = next;
-    
-    return true;
 }
 
 #endif /* MESSAGE_QUEUE_h */
