@@ -89,6 +89,6 @@ public:
     };
 };
 
-extern FSHandler FileHandler;
+extern FSHandler fileHandler;
 
 #endif /* FILESYS_HANDLER_h */

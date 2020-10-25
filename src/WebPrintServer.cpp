@@ -1,18 +1,19 @@
 #include <Update.h>
 
-#include "WebPrint_Server.h"
-#include "Print_Handler.h"
-#include "FileSys_Handler.h"
-#include "WiFi_Manager.h"
+#include "WebPrintServer.h"
+#include "PrintHandler.h"
+#include "GcodeHost.h"
+#include "FileSysHandler.h"
+#include "WiFiManager.h"
 #include "Util.h"
 
 using namespace std;
 
-WebPrintServer PrintServer;
+WebPrintServer webServer;
 
 void WebPrintServer::begin()
 {
-    LOG_Println("WebPrintServer starting...");
+    hp_log_printf("WebPrintServer starting...\n");
     /* websocket handler config */
     _webSocket->onEvent(bind(&WebPrintServer::webSocketEvent, this, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4, placeholders::_5, placeholders::_6));
     _webServer->addHandler(_webSocket);
@@ -35,11 +36,11 @@ void WebPrintServer::begin()
             bind(&WebPrintServer::webServerPOSTUploadFirmware, this, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4, placeholders::_5, placeholders::_6));
     _webServer->on("/resetWifi", HTTP_GET, bind(&WebPrintServer::webServerGETResetWifiSettings, this, placeholders::_1));
     
-    LOG_Println("WebServer begin...");
+    hp_log_printf("WebServer begin...\n");
     /* start our async webServer */
     _webServer->begin();
     
-    LOG_Println("WebServer started");
+    hp_log_printf("WebServer started\n");
 }
 
 void WebPrintServer::loop()
@@ -62,11 +63,11 @@ void WebPrintServer::webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient
 {
     if (type == WS_EVT_CONNECT)
     {
-        LOG_Println("Websocket client connection received");
+        hp_log_printf("Websocket client connection received\n");
     }
     else if (type == WS_EVT_DISCONNECT)
     {
-        LOG_Println("Client disconnected");
+        hp_log_printf("Client disconnected\n");
     }
     else if (type == WS_EVT_DATA)
     {
@@ -74,7 +75,7 @@ void WebPrintServer::webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient
         memcpy(data, payload, 124);
         data[123] = '\0';
 
-        LOG_Println("payload: " + (String)data + ", len: " + (String)len);
+        hp_log_printf("payload: %s\nlen: %d\n", data, len);
     }
 }
 
@@ -94,7 +95,7 @@ void WebPrintServer::webServerDefault(AsyncWebServerRequest *request)
 
 void WebPrintServer::webServerPOSTUploadFile(AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len, bool final)
 {
-    if (PrintHandler.isPrinting())
+    if (printHandler.isPrinting())
     {
         request->send(403, "text/plain", "Job not accepted");
     }
@@ -104,7 +105,7 @@ void WebPrintServer::webServerPOSTUploadFile(AsyncWebServerRequest *request, con
         if (!index)
         {
             String filePath = "/gcode/" + filename;
-            request->_tempFile = FileHandler.openFile(filePath, FILE_WRITE);
+            request->_tempFile = fileHandler.openFile(filePath, FILE_WRITE);
         }
 
         /* write the received bytes */
@@ -127,12 +128,10 @@ void WebPrintServer::webServerANYGcodeRequest(AsyncWebServerRequest *request)
     if (request->hasArg("printFile"))
     {
         text = request->arg("printFile");
-        if (FileHandler.exists(text))
+        if (!printHandler.isPrinting())
         {
-            if (!PrintHandler.isPrinting())
+            if(printHandler.requestPrint(text))
             {
-                WebPrintServer::_printFile = FileHandler.openFile(text, FILE_READ);
-                PrintHandler.requestPrint(WebPrintServer::_printFile);
                 code = 200;
                 text = "OK";
             }
@@ -149,18 +148,21 @@ void WebPrintServer::webServerANYGcodeRequest(AsyncWebServerRequest *request)
     else if (request->hasArg("gcodecmd"))
     {
         text = request->arg("gcodecmd");
-        res = PrintHandler.queueCommand(text, false, false);
+        if(!text.isEmpty())
+        {
+            res = gcodeHost.addCommand(text, false, false);
+        }
     }
     else if (request->hasArg("masterCmd"))
     {
         text = request->arg("masterCmd");
         /* a master command can be send even during print! */
-        res = PrintHandler.queueCommand(text, true, false);
+        res = gcodeHost.addCommand(text, true, false);
     }
     else if (request->hasArg("deletef"))
     {
         text = request->arg("deletef");
-        res = FileHandler.remove(text);
+        res = fileHandler.remove(text);
     }
     else
     {
@@ -181,32 +183,32 @@ void WebPrintServer::webServerANYGcodeRequest(AsyncWebServerRequest *request)
 
 void WebPrintServer::webServerGETListDirectories(AsyncWebServerRequest *request)
 {
-    if (PrintHandler.isPrinting())
+    if (printHandler.isPrinting())
     {
         request->send(403, "text/plain", "Job not accepted");
     }
     else
     {
-        request->send(200, "text/plain", FileHandler.jsonifyDir(".gcode"));
+        request->send(200, "text/plain", fileHandler.jsonifyDir(".gcode"));
     }
 }
 
 void WebPrintServer::webServerGETAbortPrint(AsyncWebServerRequest *request)
 {
-    if (!PrintHandler.isPrinting())
+    if (!printHandler.isPrinting())
     {
         request->send(403, "text/plain", "Job not accepted");
     }
     else
     {
-        PrintHandler.abortPrint();
+        printHandler.abortPrint();
         request->send(200, "text/plain", "Print job Cancelled!");
     }
 }
 
 void WebPrintServer::webServerGETResetWifiSettings(AsyncWebServerRequest *request)
 {
-    WiFiManager.resetSetting();
+    wifiManager.resetSetting();
     request->send(200, "text/plain", "Ok");
 }
 
@@ -221,13 +223,13 @@ void WebPrintServer::webServerPOSTUploadFirmware(AsyncWebServerRequest *request,
         /* start with MAX size */
         if (!Update.begin(UPDATE_SIZE_UNKNOWN, WebPrintServer::_uploadType))
         {
-            LOG_Println(Update.errorString());
+            hp_log_printf("%s\n", Update.errorString());
         }
     }
     /* write to flash */
     if (Update.write(data, len) != len)
     {
-        LOG_Println(Update.errorString());
+        hp_log_printf("%s\n", Update.errorString());
     }
     /* last frame of the data */
     if (final)
@@ -242,7 +244,7 @@ void WebPrintServer::webServerPOSTUploadFirmware(AsyncWebServerRequest *request,
         }
         else
         {
-            LOG_Println(Update.errorString());
+            hp_log_printf("%s\n", Update.errorString());
         }
     }
 }

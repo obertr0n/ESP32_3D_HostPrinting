@@ -1,7 +1,7 @@
 #include <functional>
 #include <SPIFFS.h>
 
-#include "WiFi_Manager.h"
+#include "WiFiManager.h"
 #include "Config.h"
 #include "Log.h"
 #include "Util.h"
@@ -47,7 +47,7 @@ void WiFiManagerClass::beginCaptive()
 {
     /* if we are here, we either failed WiFi connection */
     /* start in AP mode */
-    LOG_Println("Captive starting...");
+    hp_log_printf("Captive starting...\n");
     /* ensure correct Wifi statup */
     WiFi.disconnect(true, true);
     startAP();
@@ -69,7 +69,7 @@ void WiFiManagerClass::beginCaptive()
 
 void WiFiManagerClass::webServerHandleNotFound(AsyncWebServerRequest *request)
 {
-    LOG_Println("In not found" + request->url());
+    hp_log_printf("In not found %s\n", request->url().c_str());
     if(request->url() != "/")
     {
         AsyncWebServerResponse* response = request->beginResponse(302, "text/plain", "");
@@ -97,7 +97,7 @@ void WiFiManagerClass::webServerANYWifReq(AsyncWebServerRequest *request)
     int code = 403;
     String result;
 
-    LOG_Println("Serve req");
+    hp_log_printf("Serve req\n");
     if (request->hasArg("refresh"))
     {
         result = "{\"networks\":[]}";
@@ -106,7 +106,7 @@ void WiFiManagerClass::webServerANYWifReq(AsyncWebServerRequest *request)
 
         if(scanRet == WIFI_SCAN_FAILED)
         {
-            LOG_Println("Scan Failed");
+            hp_log_printf("Scan Failed\n");
         }
         else if(scanRet > 0)
         {
@@ -123,7 +123,7 @@ void WiFiManagerClass::webServerANYWifReq(AsyncWebServerRequest *request)
             result += "}";
         }
         code = 200;
-        LOG_Println(result);
+        hp_log_printf("Scan Res: %s\n", result.c_str());
     }
     else if(request->hasArg("mode"))
     {
@@ -157,7 +157,7 @@ void WiFiManagerClass::webServerANYWifReq(AsyncWebServerRequest *request)
 
 void WiFiManagerClass::startAP()
 {
-    LOG_Println("Starting in AP mode");
+    hp_log_printf("Starting in AP mode\n");
     WiFi.softAP(AP_DEFAULT_SSID, AP_DEFAULT_PASS);
     delay(2000);
     WiFi.softAPConfig(_softApIP, _softApIP, _softApSnet);
@@ -168,7 +168,7 @@ bool WiFiManagerClass::startSTA()
 {
     const char* pass = NULL;
     
-    LOG_Println("called with SSID " + _ssid + " and pass " + _pass);
+    hp_log_printf("Called with SSID %s and pass %s\n", _ssid.c_str(), _pass.c_str());
 
     if (_pass.length() > 0)
     {
@@ -177,7 +177,7 @@ bool WiFiManagerClass::startSTA()
     
     if (_ssid.length() > 0)
     {
-        LOG_Println("using " + _ssid + " and pass " + _pass);
+        hp_log_printf("using SSID %s and pass %s\n", _ssid.c_str(), _pass.c_str());
 
         if (!WiFi.mode(WIFI_STA))
         {
@@ -193,18 +193,19 @@ bool WiFiManagerClass::startSTA()
         while ((WiFi.status() != WL_CONNECTED) &&
             (timeout > millis()))
         {
-            LOG_Println(".");
+            hp_log_printf(".");
             delay(500);
         }
+        hp_log_printf("\n");
         /* connection failed or timmedout */
         if(WiFi.status() == WL_DISCONNECTED)
         {
-            LOG_Println("Conn FAIL");
+            hp_log_printf("Conn FAIL\n");
             return false;
         }
         else if(WiFi.status() == WL_CONNECTED)
         {
-            LOG_Println("Conn OK");
+            hp_log_printf("Conn OK\n");
             return true;
         }
     }
@@ -237,7 +238,7 @@ void WiFiManagerClass::loopCaptive()
     {
         if(_needConfig)
         {
-            LOG_Println("test new connection");
+            hp_log_printf("test new connection\n");
             /* connected successfully */
             if(startSTA())
             {
@@ -262,4 +263,4 @@ void WiFiManagerClass::loopCaptive()
     }
 }
 
-WiFiManagerClass WiFiManager;
+WiFiManagerClass wifiManager;

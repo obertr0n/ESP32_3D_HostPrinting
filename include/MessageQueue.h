@@ -1,35 +1,34 @@
 #ifndef MESSAGE_QUEUE_h
 #define MESSAGE_QUEUE_h
 
-#include <WString.h>
 #include <inttypes.h>
-#include <assert.h>
+#include "Config.h"
 
 template <class T> class MessageQueue
 {
 private:
-    T* _msgQueue;
+    T _msgQueue[HP_CMD_QUEUE_SIZE];
     uint32_t _tail;
     uint32_t _head;
     uint16_t _size;
     bool _full;
 
 public:
-    MessageQueue(uint16_t size)
+    MessageQueue()
     {
         _tail = 0;
         _head = 0;
         _full = false;
-        _size = size;
-        _msgQueue = (T*) malloc(size * sizeof(T));
-        assert(_msgQueue != NULL);
+        _size = HP_CMD_QUEUE_SIZE;
+        // _msgQueue = (T*) malloc(size * sizeof(T));
+        // assert(_msgQueue != NULL);
     };
     ~MessageQueue()
     {
-        if(_msgQueue)
-        {
-            free(_msgQueue);
-        }
+        // if(_msgQueue)
+        // {
+        //     free(_msgQueue);
+        // }
     }
     bool push(T const& elem);
     void pop();
@@ -115,7 +114,7 @@ T MessageQueue<T>::front()
 template <class T>
 bool MessageQueue<T>::push(T const &elem)
 {
-    if (_msgQueue != nullptr)
+    // if (_msgQueue != nullptr)
     {
         uint32_t next = _head + 1;
         /* we are at top, circle to first element */
@@ -137,10 +136,10 @@ bool MessageQueue<T>::push(T const &elem)
 
         return true;
     }
-    else
-    {
-        return false;
-    }
+    // else
+    // {
+    //     return false;
+    // }
 }
 
 #endif /* MESSAGE_QUEUE_h */

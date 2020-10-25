@@ -752,40 +752,18 @@
         /* PS=PrintingPG=10PR=X:154.78 Y:115.00 Z:16.02 E:0.00 Count X:12382 Y:9200 Z:6407 */
         function processWs(ev) {
             var divs = document.getElementsByClassName('lockonprint');
-            wsdata = ev.data;
+            var jsonData = JSON.parse(ev.data);
 
-            var prntState;
-            var prntPerc;
-            var serialReply;
+            lStateInf.innerText = jsonData.st;
 
-            var psIdx = wsdata.indexOf('PS=');
-            if (psIdx > -1) {
-                psIdx += 3;
-                var pgIdx = wsdata.indexOf('PG=', psIdx);
-
-                if (pgIdx > -1) {
-                    prntState = wsdata.substring(psIdx, pgIdx).trim();
-                    pgIdx += 3
-                    var prIdx = wsdata.indexOf('PR=', pgIdx);
-
-                    if (prIdx > -1) {
-                        prntPerc = wsdata.substring(pgIdx, prIdx);
-                        prIdx += 3;
-                        serialReply = wsdata.substring(prIdx);
-                    }
-                }
-            }
-
-            lStateInf.innerText = prntState;
-
-            if ((prntState == 'Not Connected') || (prntState == 'Print Cancelled')) {
+            if ((jsonData.st == 'Not Connected') || (jsonData.st == 'Print Cancelled')) {
                 lStateInf.style.color = "red";
             }
             else {
                 lStateInf.style.color = "green"
             }
 
-            if (prntState == 'Printing') {
+            if (jsonData.st == 'Printing') {
                 for (i = 0; i < divs.length; i++) {
                     divs[i].style.pointerEvents = "none";
                 }
@@ -795,8 +773,8 @@
                 document.getElementById("abortbtn").style.display = "block";
                 lPrintPrg.style.display = "block";
                 document.getElementById('printprogress').style.display = "block";
-                lPrintPrg.innerText = 'Printing: ' + prntPerc + '%';
-                pbPrint.value = prntPerc;
+                lPrintPrg.innerText = 'Printing: ' + jsonData.pc + '%';
+                pbPrint.value = jsonData.pc;
             }
             else {
                 for (i = 0; i < divs.length; i++) {
@@ -807,16 +785,16 @@
                 lPrintPrg.style.display = "none";
             }
 
-
-            if ('' !== serialReply) {
-                if (true === updateTemperature(serialReply)) {
+            if (typeof jsonData.rp !== 'undefined')
+            {
+                if (true === updateTemperature(jsonData.rp)) {
                     return;
                 }
-                else if (true == updatePosition(serialReply)) {
+                else if (true == updatePosition(jsonData.rp)) {
                     return;
                 }
 
-                textArea.value += serialReply;
+                textArea.value += jsonData.rp;
                 textArea.value += '\n';
                 textArea.scrollTop = textArea.scrollHeight
             }

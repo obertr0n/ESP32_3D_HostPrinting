@@ -1,10 +1,10 @@
 #include <SPI.h>
 
-#include "FileSys_Handler.h"
+#include "FileSysHandler.h"
 #include "Config.h"
 #include "Log.h"
 
-FSHandler FileHandler;
+FSHandler fileHandler;
 
 bool FSHandler::begin()
 {
@@ -17,7 +17,7 @@ bool FSHandler::begin()
     bool ret = false;
     if (SPIFFS.begin())
     {
-        LOG_Println("SPIFFS mounted.");
+        hp_log_printf("SPIFFS mounted.\n");
         _storageType = FS_SPIFFS;
         _FSRoot = &SPIFFS;
         _state = IDLE;
@@ -27,7 +27,7 @@ bool FSHandler::begin()
     /* try and mount SD */
     if (SD.begin(PIN_SD_SS))
     {
-        LOG_Println("SD Card initialized.");
+        hp_log_printf("SD Card initialized.\n");
         if (_storageType == FS_SPIFFS)
         {
             /* we have both available */
@@ -52,12 +52,12 @@ void FSHandler::listDir(const char *dirname, uint8_t levels)
     File root = _FSRoot->open(dirname);
     if (!root)
     {
-        LOG_Println("Failed to open directory");
+        hp_log_printf("Failed to open directory");
         return;
     }
     if (!root.isDirectory())
     {
-        LOG_Println("Not a directory");
+        hp_log_printf("Not a directory\n");
         return;
     }
 
@@ -66,8 +66,7 @@ void FSHandler::listDir(const char *dirname, uint8_t levels)
     {
         if (file.isDirectory())
         {
-            LOG_Println("  DIR : ");
-            LOG_Println(file.name());
+            hp_log_printf("  DIR : %s\n", file.name());
             if (levels)
             {
                 listDir(file.name(), levels - 1);
@@ -75,10 +74,8 @@ void FSHandler::listDir(const char *dirname, uint8_t levels)
         }
         else
         {
-            LOG_Println("  FILE: ");
-            LOG_Println(file.name());
-            LOG_Println("  SIZE: ");
-            LOG_Println(file.size());
+            hp_log_printf("  FILE: %s\n", file.name());
+            hp_log_printf("  SIZE: %d\n", file.size());
         }
         file = root.openNextFile();
     }
@@ -94,7 +91,7 @@ String FSHandler::jsonifyDir(String dir, String ext)
         File root = _FSRoot->open(dir);
         if (!root || !root.isDirectory())
         {
-            LOG_Println("invalid dir");
+            hp_log_printf("invalid dir\n");
             return jsonString;
         }
 
@@ -126,7 +123,7 @@ String FSHandler::jsonifyDir(String dir, String ext)
             jsonString = "{\"files\":[]}";
         }
         
-        LOG_Println(jsonString);
+        hp_log_printf("%s\n", jsonString.c_str());
 
         return jsonString;
     }
@@ -140,7 +137,7 @@ void FSHandler::writeBytes(String &path, const uint8_t *data, size_t len)
     File file = _FSRoot->open(path, FILE_WRITE);
     if (!file)
     {
-        LOG_Println("Failed to open file for writing");
+        hp_log_printf("Failed to open file for writing\n");
         _state = ERROR;
         return;
     }
@@ -151,7 +148,7 @@ void FSHandler::writeBytes(String &path, const uint8_t *data, size_t len)
     }
     else
     {
-        LOG_Println("Write failed");
+        hp_log_printf("Write failed\n");
         _state = ERROR;
     }
     file.close();

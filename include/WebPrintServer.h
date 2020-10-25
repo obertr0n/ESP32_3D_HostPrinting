@@ -1,7 +1,6 @@
 #ifndef WEB_PRINT_SERVER_h
 #define WEB_PRINT_SERVER_h
 
-
 #include <SPIFFS.h>
 #include <ESPAsyncWebServer.h>
 
@@ -49,6 +48,6 @@ class WebPrintServer
         void loop();
 };
 
-extern WebPrintServer PrintServer;
+extern WebPrintServer webServer;
 
 #endif /* WEB_PRINT_SERVER_h */

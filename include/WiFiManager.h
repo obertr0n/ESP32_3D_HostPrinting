@@ -77,7 +77,7 @@ class WiFiManagerClass
 
 };
 
-extern WiFiManagerClass WiFiManager;
+extern WiFiManagerClass wifiManager;
 
 
 #endif /* WIFI_MANAGER_h */

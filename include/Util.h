@@ -3,6 +3,8 @@
 
 #include <Esp.h>
 #include <WiFi.h>
+#include "esp_task_wdt.h"
+
 #include "Config.h"
 
 class UtilClass
@@ -68,6 +70,13 @@ class UtilClass
                 delay(300);
             }
         };
+
+        void safeDelay(uint32_t cnt)
+        {
+            vTaskDelay(cnt);
+            esp_task_wdt_reset();
+        }
+    
     private:
         void blinkReboot()
         {
