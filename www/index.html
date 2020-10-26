@@ -579,7 +579,7 @@
                     </table>
                 </div>
                 <div id='cmdarea' class="lockonprint">
-                    <label>Manual Printer Command</label>
+                    <label>Command Window</label>
                     <textarea readonly id="cmdtext"></textarea>
                     <label for="icommand" id="lcommand">Command</label>
                     <input type="text" id="icommand" name="icommand" onkeyup="Command_OnEnter(event)">
@@ -622,7 +622,16 @@
             <section class="settings-container">
                 <div class="setting" id="settings-storage">
                     <div id="setting-header">Storage Information</div>
-                    <div id="setting-content">Storage Storage Storage</div>
+                    <div id="setting-content">
+                        <div id='sdsizetxt'>SD</div>
+                        <div id='sdtotalbar'>
+                            <div id='sdfullbar'> </div>
+                        </div>
+                        <div id='spiffssizetxt'>SPIFFS</div>
+                        <div id='spiffstotalbar'>
+                            <div id='spiffsfullbar'> </div>
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>
@@ -749,40 +758,47 @@
             item.innerHTML = '   ' + fileName[fileName.length - 1];
         };
 
-        /* PS=PrintingPG=10PR=X:154.78 Y:115.00 Z:16.02 E:0.00 Count X:12382 Y:9200 Z:6407 */
         function processWs(ev) {
             var divs = document.getElementsByClassName('lockonprint');
             var jsonData = JSON.parse(ev.data);
 
-            lStateInf.innerText = jsonData.st;
+            if(typeof jsonData.st !== 'undefined')
+            {
+                lStateInf.innerText = jsonData.st;
 
-            if ((jsonData.st == 'Not Connected') || (jsonData.st == 'Print Cancelled')) {
+                if ((jsonData.st == 'Not Connected') || (jsonData.st == 'Print Cancelled')) {
+                    lStateInf.style.color = "red";
+                }
+                else {
+                    lStateInf.style.color = "green"
+                }
+
+                if (jsonData.st == 'Printing') {
+                    for (i = 0; i < divs.length; i++) {
+                        divs[i].style.pointerEvents = "none";
+                    }
+
+                    var progdiv = document.getElementById('printprogress');
+                    progdiv.style.display = 'block';
+                    document.getElementById("abortbtn").style.display = "block";
+                    lPrintPrg.style.display = "block";
+                    document.getElementById('printprogress').style.display = "block";
+                    lPrintPrg.innerText = 'Printing: ' + jsonData.pc + '%';
+                    pbPrint.value = jsonData.pc;
+                }
+                else {
+                    for (i = 0; i < divs.length; i++) {
+                        divs[i].style.pointerEvents = "all";
+                    }
+                    document.getElementById("abortbtn").style.display = "none";
+                    document.getElementById('printprogress').style.display = "none";
+                    lPrintPrg.style.display = "none";
+                }
+            }
+            else
+            {
+                lStateInf.innerText = "Unknown";
                 lStateInf.style.color = "red";
-            }
-            else {
-                lStateInf.style.color = "green"
-            }
-
-            if (jsonData.st == 'Printing') {
-                for (i = 0; i < divs.length; i++) {
-                    divs[i].style.pointerEvents = "none";
-                }
-
-                var progdiv = document.getElementById('printprogress');
-                progdiv.style.display = 'block';
-                document.getElementById("abortbtn").style.display = "block";
-                lPrintPrg.style.display = "block";
-                document.getElementById('printprogress').style.display = "block";
-                lPrintPrg.innerText = 'Printing: ' + jsonData.pc + '%';
-                pbPrint.value = jsonData.pc;
-            }
-            else {
-                for (i = 0; i < divs.length; i++) {
-                    divs[i].style.pointerEvents = "all";
-                }
-                document.getElementById("abortbtn").style.display = "none";
-                document.getElementById('printprogress').style.display = "none";
-                lPrintPrg.style.display = "none";
             }
 
             if (typeof jsonData.rp !== 'undefined')

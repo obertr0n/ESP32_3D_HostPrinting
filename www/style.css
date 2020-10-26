@@ -316,7 +316,14 @@ input[type=submit],
     width: 48.5%;
 }
 
-#truserinp td {
+#sdtotalbar {
+    background-color: peachpuff;
+    margin: 0px 5px 5px 5px;
+}
+
+#spiffstotalbar {
+    margin-top: 20px;
+    background-color: red;
 }
 
 .iucmd{

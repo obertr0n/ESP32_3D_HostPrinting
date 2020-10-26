@@ -57,7 +57,6 @@ bool GcodeHost::rxProcessReply()
                 while (availRx)
                 {
                     bytesRead = serialHandler.readBytes(&_serialRxBuffer[bytesRead], readSize);
-                    bytesRead++;
                     _serialRxBuffer[bytesRead] = '\0';
                     _rxReply += (const char *)_serialRxBuffer;
                     availRx -= bytesRead;
@@ -66,7 +65,6 @@ bool GcodeHost::rxProcessReply()
             else
             {
                 bytesRead = serialHandler.readBytes(&_serialRxBuffer[bytesRead], availRx);
-                bytesRead++;
                 _serialRxBuffer[bytesRead] = '\0';
                 _rxReply += (const char *)_serialRxBuffer;
             }
