@@ -8,109 +8,88 @@
 #include "TelnetService.h"
 #include "PrintHandler.h"
 
-#define GCODE_RX_TASK_PRIO             5
-#define GCODE_RX_TASK_CORE             1
+#define GRX_TASK_PRIO   5
+#define GRX_TASK_CORE   1
 
-#define GCODE_TX_TASK_PRIO             6
-#define GCODE_TX_TASK_CORE             1
+#define GTX_TASK_PRIO   6
+#define GTX_TASK_CORE   1
 
-#define PRINT_STATE_TASK_PRIO          4
-#define PRINT_STATE_TASK_CORE          1
+#define HC_TASK_PRIO    4
+#define HC_TASK_CORE    1
 
-#define LOGGING_TASK_PRIO              7
-#define LOGGING_TASK_CORE              1
+TaskHandle_t _gcodeRxTH = NULL;
+TaskHandle_t _gcodeTxTH = NULL;
 
-TaskHandle_t gcodeRxTaskHandle = NULL;
-TaskHandle_t gcodeTxTaskHandle = NULL;
+TaskHandle_t _houseKeepingTH = NULL;
 
-TaskHandle_t loggingTaskHandle = NULL;
-TaskHandle_t printStateTaskHandle = NULL;
+static void GcodeRx_process(void* param);
+static void GcodeTx_process(void* param);
 
-static void GcodeRxTask_process(void* param);
-static void GcodeTxTask_process(void* param);
+static void HouseKeeping_process(void* param);
 
-static void LoggingTask_process(void* param);
-static void PrintStateTask_process(void* param);
-
-void GcodeRxTask_init()
+void InitTask_GcodeRx()
 {
-    if (gcodeRxTaskHandle == NULL) 
+    if (_gcodeRxTH == NULL) 
     {
         xTaskCreatePinnedToCore(
-            GcodeRxTask_process, /* Task function. */
-            "GcodeRxProcessor", /* name of task. */
+            GcodeRx_process, /* Task function. */
+            "rtx_task", /* name of task. */
             2048, /* Stack size of task */
             NULL, /* parameter of the task */
-            GCODE_RX_TASK_PRIO, /* priority of the task */
-            &gcodeRxTaskHandle, /* Task handle to keep track of created task */
-            GCODE_RX_TASK_CORE    /* Core to run the task */
+            GRX_TASK_PRIO, /* priority of the task */
+            &_gcodeRxTH, /* Task handle to keep track of created task */
+            GRX_TASK_CORE    /* Core to run the task */
         );
     }
 }
 
-void GcodeTxTask_init()
+void InitTask_GcodeTx()
 {
-    if (gcodeTxTaskHandle == NULL) 
+    if (_gcodeTxTH == NULL) 
     {
         xTaskCreatePinnedToCore(
-            GcodeTxTask_process, /* Task function. */
-            "GcodeTxProcessor", /* name of task. */
+            GcodeTx_process, /* Task function. */
+            "gtx_task", /* name of task. */
             2048, /* Stack size of task */
             NULL, /* parameter of the task */
-            GCODE_TX_TASK_PRIO, /* priority of the task */
-            &gcodeTxTaskHandle, /* Task handle to keep track of created task */
-            GCODE_TX_TASK_CORE    /* Core to run the task */
+            GTX_TASK_PRIO, /* priority of the task */
+            &_gcodeTxTH, /* Task handle to keep track of created task */
+            GTX_TASK_CORE    /* Core to run the task */
         );
     }
 }
 
-void PrintStateTask_init()
+void InitTask_HouseKeeping()
 {
-    if (printStateTaskHandle == NULL) 
+    if (_houseKeepingTH == NULL) 
     {
         xTaskCreatePinnedToCore(
-            PrintStateTask_process, /* Task function. */
-            "PrintStateProcessor", /* name of task. */
+            HouseKeeping_process, /* Task function. */
+            "hc_task", /* name of task. */
             2048, /* Stack size of task */
             NULL, /* parameter of the task */
-            PRINT_STATE_TASK_PRIO, /* priority of the task */
-            &printStateTaskHandle, /* Task handle to keep track of created task */
-            PRINT_STATE_TASK_CORE    /* Core to run the task */
-        );
-    }
-}
-
-void LoggingTask_init()
-{
-    if (loggingTaskHandle == NULL) 
-    {
-        xTaskCreatePinnedToCore(
-            LoggingTask_process, /* Task function. */
-            "LoggingTask", /* name of task. */
-            1024, /* Stack size of task */
-            NULL, /* parameter of the task */
-            LOGGING_TASK_PRIO, /* priority of the task */
-            &loggingTaskHandle, /* Task handle to keep track of created task */
-            LOGGING_TASK_CORE    /* Core to run the task */
+            HC_TASK_PRIO, /* priority of the task */
+            &_houseKeepingTH, /* Task handle to keep track of created task */
+            HC_TASK_CORE    /* Core to run the task */
         );
     }
 }
 
 /* task handler */
-static void GcodeRxTask_process(void* param)
+static void GcodeRx_process(void* param)
 {
     for(;;)
     {
         if(gcodeHost.loopRx())
         {
-            xTaskNotifyGive(gcodeTxTaskHandle);
+            xTaskNotifyGive(_gcodeTxTH);
         }
     }
-    esp_task_wdt_delete(gcodeRxTaskHandle);
-    vTaskDelete(gcodeRxTaskHandle);
+    esp_task_wdt_delete(_gcodeRxTH);
+    vTaskDelete(_gcodeRxTH);
 }
 
-static void GcodeTxTask_process(void* param)
+static void GcodeTx_process(void* param)
 {
     const TickType_t xMaxExpectedBlockTime = 50 / portTICK_PERIOD_MS;
     for(;;)
@@ -118,23 +97,11 @@ static void GcodeTxTask_process(void* param)
         ulTaskNotifyTake(pdTRUE, xMaxExpectedBlockTime);
         gcodeHost.loopTx();
     }
+    esp_task_wdt_delete(_gcodeTxTH);
+    vTaskDelete(_gcodeTxTH);
 }
 
-static void LoggingTask_process(void* param)
-{
-    TickType_t xLastWakeTime;
-    const TickType_t xFrequency = 300 / portTICK_PERIOD_MS;
-    for(;;)
-    {
-        #if ON == ENABLE_TELNET 
-        telnetService.loop();
-        //Serial.println(".");
-        vTaskDelayUntil(&xLastWakeTime, xFrequency);
-        #endif        
-    }
-}
-
-static void PrintStateTask_process(void* param)
+static void HouseKeeping_process(void* param)
 {
     TickType_t xLastWakeTime;
     const TickType_t xTimeout = 500 / portTICK_PERIOD_MS;
@@ -150,4 +117,6 @@ static void PrintStateTask_process(void* param)
 
         vTaskDelayUntil(&xLastWakeTime, xTimeout);
     }
+    esp_task_wdt_delete(_houseKeepingTH);
+    vTaskDelete(_houseKeepingTH);
 }

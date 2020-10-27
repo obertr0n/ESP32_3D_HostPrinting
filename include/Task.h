@@ -1,9 +1,8 @@
 #ifndef TASK_h
 #define TASK_h
 
-void GcodeRxTask_init();
-void GcodeTxTask_init();
-void PrintStateTask_init();
-void LoggingTask_init();
+void InitTask_GcodeRx();
+void InitTask_GcodeTx();
+void InitTask_HouseKeeping();
 
 #endif /* TASK_h */
