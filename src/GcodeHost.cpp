@@ -1,11 +1,11 @@
 #include "GcodeHost.h"
 #include "SerialHandler.h"
 
-// #define REPLY_PROCESS_TIMEOUT       (16 * 1000) //in ms
-#define M115_CONNECTION_TOUT        500 // in ms
-#define RESERVED_QUEUE_SLOTS        3u // queue positions reserved for critical commands
-
 GcodeHost gcodeHost;
+
+static const uint32_t M115_CONNECTION_TOUT = 500u;
+static const uint32_t RESERVED_QUEUE_SLOTS = 3u;
+const TickType_t RX_DATA_DELAY = 1 / portTICK_PERIOD_MS;
 
 static const String RESEND_STR = "Resend: ";
 static const uint32_t RESEND_STR_LEN = RESEND_STR.length();
@@ -18,7 +18,7 @@ static const char COMMENT_CHAR = ';';
 static const uint32_t INVALID_LINE_NUMBER = 0xffffffff;
 
 /*
-@*brief rest all the global variables and states
+*@brief rest all the global variables and states
 */
 void GcodeHost::resetState()
 {
@@ -36,74 +36,68 @@ void GcodeHost::resetState()
 }
 
 /*
-@*brief reads all the available data from serial and retrieve the ACK state. Timeouts after REPLY_PROCESS_TIMEOUT
+*@brief reads all the available data from serial and retrieve the ACK state. Timeouts after REPLY_PROCESS_TIMEOUT
 */
 bool GcodeHost::rxProcessReply()
 {
     bool replyFound = false;
-    // uint32_t timeout = millis() + REPLY_PROCESS_TIMEOUT;
-
-    // while ((timeout > millis()) && (false == replyFound))
-    // {
-        size_t availRx = serialHandler.available();
-        /* have pending data */
-        if (availRx > 0)
+    size_t availRx = serialHandler.available();
+    /* have pending data */
+    if (availRx > 0)
+    {
+        size_t bytesRead = 0;
+        size_t readSize;
+        if (availRx > HP_SERIAL_RX_BUFFER_SIZE - 1)
         {
-            size_t bytesRead = 0;
-            size_t readSize;
-            if(availRx > HP_SERIAL_RX_BUFFER_SIZE-1)
+            readSize = HP_SERIAL_RX_BUFFER_SIZE - 2;
+            while (availRx)
             {
-                readSize = HP_SERIAL_RX_BUFFER_SIZE-2;
-                while (availRx)
-                {
-                    bytesRead = serialHandler.readBytes(&_serialRxBuffer[bytesRead], readSize);
-                    _serialRxBuffer[bytesRead] = '\0';
-                    _rxReply += (const char *)_serialRxBuffer;
-                    availRx -= bytesRead;
-                }
-            }
-            else
-            {
-                bytesRead = serialHandler.readBytes(&_serialRxBuffer[bytesRead], availRx);
+                bytesRead = serialHandler.readBytes(&_serialRxBuffer[bytesRead], readSize);
                 _serialRxBuffer[bytesRead] = '\0';
                 _rxReply += (const char *)_serialRxBuffer;
-            }
-            if (!_connected)
-            {
-                if (rxCheckM115(_rxReply))
-                {
-                    _connected = true;
-                    hp_log_printf("connected\n");
-                    replyFound = true;
-                }
-            }
-            else
-            {
-                /* check if a valid reply was found */
-                replyFound = rxCheckAckReply(_rxReply);
-            }
-            if (replyFound)
-            {
-                acquireLock();
-                _serialReply = _rxReply;
-                releaseLock();
-                _rxReply = "";
+                availRx -= bytesRead;
             }
         }
         else
         {
-            /* if no data, force quit */
-            // timeout = 0u;
-            vTaskDelay(1);
+            bytesRead = serialHandler.readBytes(&_serialRxBuffer[bytesRead], availRx);
+            _serialRxBuffer[bytesRead] = '\0';
+            _rxReply += (const char *)_serialRxBuffer;
         }
-    // }
+        if (!_connected)
+        {
+            if (rxCheckM115(_rxReply))
+            {
+                _connected = true;
+                hp_log_printf("printer connected\n");
+                replyFound = true;
+            }
+        }
+        else
+        {
+            /* check if a valid reply was found */
+            replyFound = rxCheckAckReply(_rxReply);
+        }
+        if (replyFound)
+        {
+            acquireLock();
+            _serialReply = _rxReply;
+            releaseLock();
+            _rxReply = "";
+        }
+    }
+    else
+    {
+        /* if no data, force quit */
+        vTaskDelay(RX_DATA_DELAY);
+    }
     return replyFound;
 }
 
 /*
-@*brief Retrieve the ACK state from a serial reply
-@*param reply String that holds the serial reply
-@*return true if a reply was found */
+*@brief Retrieve the ACK state from a serial reply
+*@param reply String that holds the serial reply
+*@return true if a reply was found */
 bool GcodeHost::rxCheckAckReply(String &reply)
 {
     AckState txAckState = getTxAckState(); // uses a mutex
@@ -153,9 +147,9 @@ bool GcodeHost::rxCheckAckReply(String &reply)
 }
 
 /*
-@*brief Check if the reply received is as result of a M115 command
-@*param reply the serial reply to be checked
-@*return true if previous command was a M115
+*@brief Check if the reply received is as result of a M115 command
+*@param reply the serial reply to be checked
+*@return true if previous command was a M115
 */
 bool GcodeHost::rxCheckM115(const String &reply)
 {
@@ -209,9 +203,9 @@ ok
 }
 
 /*
-@*brief Compute the checksum for the provided command 
-@*param cmd String that hold the command
-@*return initial command plus checksum
+*@brief Compute the checksum for the provided command 
+*@param cmd String that hold the command
+*@return initial command plus checksum
 */
 String GcodeHost::computeChecksum(String &cmd)
 {
@@ -230,11 +224,11 @@ String GcodeHost::computeChecksum(String &cmd)
 }
 
 /*
-@*brief Add a command to the queue only if printer connected
-@*param command reference to to a String containing the command
-@*param master boolean used to specify if it can be added even when printing
-@*param chksum boolean used to specify if checksum has to be added to the queued command
-@*return true if success */
+*@brief Add a command to the queue only if printer connected
+*@param command reference to to a String containing the command
+*@param master boolean used to specify if it can be added even when printing
+*@param chksum boolean used to specify if checksum has to be added to the queued command
+*@return true if success */
 bool GcodeHost::queueCmd(String &command, bool master = true, bool chksum = true)
 {
     GcodeCmd msg;
@@ -265,9 +259,9 @@ bool GcodeHost::queueCmd(String &command, bool master = true, bool chksum = true
 }
 
 /*
-@*brief Search for and entry with the same line number
-@*param cmdNo line number to search for
-@*return the command that was found. Empty string represents not found.
+*@brief Search for and entry with the same line number
+*@param cmdNo line number to search for
+*@return the command that was found. Empty string represents not found.
 */
 String GcodeHost::getStoredCmd(uint32_t cmdNo)
 {
@@ -283,8 +277,8 @@ String GcodeHost::getStoredCmd(uint32_t cmdNo)
 }
 
 /*
-@*brief Store the commands are they are sent in case of retransmit error
-@*param cmd reference to the command to be stored
+*@brief Store the commands are they are sent in case of retransmit error
+*@param cmd reference to the command to be stored
 */
 void GcodeHost::storeSentCmd(GcodeCmd &cmd)
 {
@@ -295,7 +289,7 @@ void GcodeHost::storeSentCmd(GcodeCmd &cmd)
 }
 
 /*
-@*brief Buffer as many line from the file as possible
+*@brief Buffer as many line from the file as possible
 */
 void GcodeHost::prebufferFile()
 {
@@ -309,8 +303,8 @@ void GcodeHost::prebufferFile()
 }
 
 /*
-@*brief Add a line to the message queue
-@*param line reference to the line to be added
+*@brief Add a line to the message queue
+*@param line reference to the line to be added
 */
 void GcodeHost::queueLine(String &line)
 {
@@ -335,7 +329,7 @@ void GcodeHost::queueLine(String &line)
 }
 
 /*
-@*brief Parse the file during printing state and queue lines
+*@brief Parse the file during printing state and queue lines
 */
 void GcodeHost::parseAndQueueFile()
 {
@@ -367,9 +361,9 @@ void GcodeHost::parseAndQueueFile()
 }
 
 /*
-@*brief Request the start of printing a file
-@*param filename the name of the file
-@*return job accepted or not
+*@brief Request the start of printing a file
+*@param filename the name of the file
+*@return job accepted or not
 */
 bool GcodeHost::requestPrint(String& filename)
 {
@@ -385,7 +379,7 @@ bool GcodeHost::requestPrint(String& filename)
 }
 
 /*
-@*brief Request the abortion of a print. It will immediately send a Stop command to the printer
+*@brief Request the abortion of a print. It will immediately send a Stop command to the printer
 */
 void GcodeHost::requestAbort()
 {
@@ -395,7 +389,7 @@ void GcodeHost::requestAbort()
 }
 
 /*
-@*brief Get one command from queue and send it over serial
+*@brief Get one command from queue and send it over serial
 */
 void GcodeHost::popAndSendCommand()
 {
@@ -452,7 +446,7 @@ void GcodeHost::popAndSendCommand()
     }
 }
 /*
-@*brief Attempts connection to printer
+*@brief Attempts connection to printer
 */
 void GcodeHost::txNotConnectedState()
 {
@@ -470,7 +464,7 @@ void GcodeHost::txNotConnectedState()
 }
 
 /*
-@*brief Transmits commands queue by web interface
+*@brief Transmits commands queue by web interface
 */
 void GcodeHost::txIdleState()
 {
@@ -494,7 +488,7 @@ void GcodeHost::txIdleState()
 }
 
 /*
-@*brief Handle the print requests
+*@brief Handle the print requests
 */
 void GcodeHost::txPrintReqState()
 {
@@ -516,7 +510,7 @@ void GcodeHost::txPrintReqState()
 }
 
 /*
-@*brief Handle the prebuffering state
+*@brief Handle the prebuffering state
 */
 void GcodeHost::txBufferingState()
 {
@@ -526,7 +520,7 @@ void GcodeHost::txBufferingState()
 }
 
 /*
-@*brief Handle the printing state
+*@brief Handle the printing state
 */
 void GcodeHost::txPrintingState()
 {
@@ -535,7 +529,7 @@ void GcodeHost::txPrintingState()
 }
 
 /*
-@*brief Handle successful or unsuccessful print completion
+*@brief Handle successful or unsuccessful print completion
 */
 void GcodeHost::txPrintDoneState()
 {
@@ -544,7 +538,7 @@ void GcodeHost::txPrintDoneState()
 }
 
 /*
-@*brief Tx state machine
+*@brief Tx state machine
 */
 void GcodeHost::transmit_SM()
 {

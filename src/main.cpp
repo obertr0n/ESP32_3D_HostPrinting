@@ -55,21 +55,12 @@ void setup(void)
     Util.blinkSuccess();
 
     /* configure tasks */
-    // LoggingTask_init();
-    PrintStateTask_init();    
-    // gcodeHost.attemptConnect();
-    GcodeTxTask_init();
-    GcodeRxTask_init();
+    InitTask_HouseKeeping(); /* prio 4 */
+    InitTask_GcodeTx(); /* prio 6 */
+    InitTask_GcodeRx(); /* prio 5 */
 }
-// static uint32_t timeout = 0; 
+
 void loop(void)
 {
-    // if(timeout < millis())
-    // {
-    //     hp_log_printf("Heap total: %d\n", ESP.getHeapSize());
-    //     hp_log_printf("Worst: %d\n", ESP.getMinFreeHeap());
-    //     hp_log_printf("Biggest block %d\n", ESP.getMaxAllocHeap());
-    //     hp_log_printf("Heap: %d\n", Util.getHeapUsedPercent());
-    //     timeout += 1000;
-    // }
+
 }
