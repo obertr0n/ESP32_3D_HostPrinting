@@ -181,7 +181,7 @@ class GcodeHost
             _rxAckState = s; 
             releaseLock();            
         }
-        
+        TransmitState getTxState() { return _txState; }
         AckState getTxAckState() 
         { 
             AckState state;
