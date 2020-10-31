@@ -356,7 +356,6 @@ void GcodeHost::parseAndQueueFile()
     {
         hp_log_printf("No more data\n");
         _file.close();
-        _txState = GH_STATE_PRINT_DONE;
     }
 }
 
@@ -445,6 +444,15 @@ void GcodeHost::popAndSendCommand()
         }
     }
 }
+
+/*
+*@brief Check if the current job is complete
+*@return true if job is done, false otherwise
+*/
+bool GcodeHost::isPrintDone()
+{
+    return ((true == _cmdQueue->isempty()) && (_file.available() <= 0));
+}
 /*
 *@brief Attempts connection to printer
 */
@@ -526,6 +534,11 @@ void GcodeHost::txPrintingState()
 {
     parseAndQueueFile();
     popAndSendCommand();
+
+    if(true == isPrintDone())
+    {
+        _txState = GH_STATE_PRINT_DONE;
+    }
 }
 
 /*

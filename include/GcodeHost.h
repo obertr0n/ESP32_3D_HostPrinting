@@ -101,6 +101,7 @@ class GcodeHost
         String computeChecksum(String& cmd);
         void queueLine(String& line);
         void parseAndQueueFile();
+        bool isPrintDone();
         void popAndSendCommand();
         void txNotConnectedState();
         void txIdleState();
