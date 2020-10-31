@@ -72,6 +72,10 @@ void PrintHandler::processSM()
                 _state = PH_STATE_ABORT_REQ;
                 gcodeHost.requestAbort();
             }
+            else if(GH_STATE_IDLE == gcodeHost.getTxState())
+            {
+                _state = PH_STATE_IDLE;
+            }
         break;
         case PH_STATE_ABORT_REQ:
             _state = PH_STATE_IDLE;
