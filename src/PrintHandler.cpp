@@ -75,6 +75,7 @@ void PrintHandler::processSM()
         break;
         case PH_STATE_ABORT_REQ:
             _state = PH_STATE_IDLE;
+            _reqAbort = false;
         break;
         default:
         break;
