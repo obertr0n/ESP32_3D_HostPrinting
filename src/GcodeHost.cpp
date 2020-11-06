@@ -5,7 +5,7 @@ GcodeHost gcodeHost;
 
 static const uint32_t M115_CONNECTION_TOUT = 500u;
 static const uint32_t RESERVED_QUEUE_SLOTS = 3u;
-const TickType_t RX_DATA_DELAY = 1 / portTICK_PERIOD_MS;
+const TickType_t RX_DATA_DELAY = 2 / portTICK_PERIOD_MS;
 
 static const String RESEND_STR = "Resend: ";
 static const uint32_t RESEND_STR_LEN = RESEND_STR.length();
@@ -64,6 +64,7 @@ bool GcodeHost::rxProcessReply()
             _serialRxBuffer[bytesRead] = '\0';
             _rxReply += (const char *)_serialRxBuffer;
         }
+        hp_log_printf("<< %s", _serialRxBuffer);
         if (!_connected)
         {
             if (rxCheckM115(_rxReply))

@@ -5,7 +5,7 @@
 #include "Util.h"
 #include "Log.h"
 
-static const TickType_t SERIAL_TX_DELAY = 1 / portTICK_PERIOD_MS;
+static const TickType_t SERIAL_TX_DELAY = 2 / portTICK_PERIOD_MS;
 
 static const uint16_t BAUD_RATES_COUNT = 1;
 static const uint32_t BAUD_RATES[BAUD_RATES_COUNT] = {115200};
