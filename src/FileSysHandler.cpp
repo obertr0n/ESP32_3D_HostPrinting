@@ -1,15 +1,14 @@
-#include <SPI.h>
-
 #include "FileSysHandler.h"
-#include "Config.h"
 #include "Log.h"
 
 FSHandler fileHandler;
 
 bool FSHandler::begin()
 {
+    #if (ON == ENABLE_SD_CARD)
     /* init SPI for SD communication */
     SPI.begin(PIN_SD_CLK, PIN_SD_MISO, PIN_SD_MOSI, PIN_SD_SS);
+    #endif
     /* at the moment we don't know the FS type */
     _storageType = FS_NONE;
     _FSRoot = NULL;
@@ -25,6 +24,7 @@ bool FSHandler::begin()
         ret = true;
     }
     /* try and mount SD */
+    #if (ON == ENABLE_SD_CARD)
     if (SD.begin(PIN_SD_SS))
     {
         hp_log_printf("SD Card initialized.\n");
@@ -44,6 +44,7 @@ bool FSHandler::begin()
 
         ret= true;
     }
+    #endif
     return ret;
 }
 

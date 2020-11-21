@@ -1,8 +1,13 @@
 #ifndef FILESYS_HANDLER_h
 #define FILESYS_HANDLER_h
 
+#include "Config.h"
+
 #include <FS.h>
+#if (ON == ENABLE_SD_CARD)
+#include <SPI.h>
 #include <SD.h>
+#endif
 #include <SPIFFS.h>
 
 enum FSHandlerState
@@ -38,7 +43,11 @@ public:
     }
     size_t getSdFreeBytes()
     {
+        #if (ON == ENABLE_SD_CARD)
         return (SD.totalBytes() - SD.usedBytes());
+        #else
+        return 0;
+        #endif
     }
 
     FSHandlerState getWriteState() { return _state; };

@@ -13,6 +13,9 @@
 /* section serial */
 #define PRINTER_SERIAL              Serial
 
+/* section storage */
+#define ENABLE_SD_CARD              ON
+
 /* start config */
 #define ENABLE_DEBUG                ON
 #define ENABLE_TELNET               ON
@@ -35,5 +38,14 @@
 
 #define HP_SERIAL_RX_QUEUE_SIZE     768u // Rx queue size
 #define HP_SERIAL_RX_BUFFER_SIZE    (HP_SERIAL_RX_QUEUE_SIZE * 2) // Rx queue size
+
+/* section inline debugger (FTDI FT232H) */
+/* setting this to ON will disable the SD Card because of conflicting pins */
+#define ENABLE_ESP_DEBUGGER         ON
+
+#if (ON == ENABLE_ESP_DEBUGGER)
+    #undef ENABLE_SD_CARD
+    #define ENABLE_SD_CARD OFF
+#endif
 
 #endif /* CONFIG_h */
