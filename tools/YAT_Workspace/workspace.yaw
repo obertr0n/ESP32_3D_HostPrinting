@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Settings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <SettingsName>YAT Workspace Settings</SettingsName>
+  <SettingsVersion>1.2.3</SettingsVersion>
+  <ProductVersion>2.1.0</ProductVersion>
+  <Warning>Modifying structure and/or content may cause undefined behavior!</Warning>
+  <Mark>
+    <TimeStamp>2020-11-09T15:23:09.4262136+02:00</TimeStamp>
+    <UserName>alexb</UserName>
+  </Mark>
+  <AutoSaved>false</AutoSaved>
+  <Workspace>
+    <Layout>Manual</Layout>
+    <TerminalSettings>
+      <FilePath>.\Terminal1.yat</FilePath>
+      <FixedId>1</FixedId>
+      <Window>
+        <State>Normal</State>
+        <Location>
+          <X>0</X>
+          <Y>1</Y>
+        </Location>
+        <Size>
+          <Width>794</Width>
+          <Height>537</Height>
+        </Size>
+      </Window>
+    </TerminalSettings>
+    <TerminalSettings>
+      <FilePath>.\Terminal2.yat</FilePath>
+      <FixedId>2</FixedId>
+      <Window>
+        <State>Normal</State>
+        <Location>
+          <X>-4</X>
+          <Y>160</Y>
+        </Location>
+        <Size>
+          <Width>857</Width>
+          <Height>588</Height>
+        </Size>
+      </Window>
+    </TerminalSettings>
+    <TerminalSettings>
+      <FilePath>.\Terminal3.yat</FilePath>
+      <FixedId>3</FixedId>
+      <Window>
+        <State>Normal</State>
+        <Location>
+          <X>583</X>
+          <Y>59</Y>
+        </Location>
+        <Size>
+          <Width>900</Width>
+          <Height>601</Height>
+        </Size>
+      </Window>
+    </TerminalSettings>
+  </Workspace>
+</Settings>
